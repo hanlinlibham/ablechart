@@ -1,0 +1,4 @@
+# generated binaries
+/demo_output/*.pptx
+/templates/*.pptx
+/tests/tmp/

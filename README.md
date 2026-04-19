@@ -228,3 +228,12 @@ pptchartengine/
 2. 提升 waterfall 的报告级视觉质量
 3. 扩展 scatter / bubble 的上层工作流支持
 4. 下一重图族优先考虑 candlestick / OHLC
+
+## Node/TS OOXML POC
+
+仓库新增了独立目录 `node_renderer/`，用于验证 Node/TS 是否能复刻 Python 的 raw OOXML 路线（当前仅 `range_snapshot` family，POC 状态）。
+
+详见：
+
+- `docs/node_range_snapshot_poc_design.md`
+- `node_renderer/README.md`
