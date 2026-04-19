@@ -1,25 +1,86 @@
 # pptchartengine
 
-`pptchartengine` 是从当前 `ppt-st` 项目中提取出来的图表核心包，定位为：
+`pptchartengine` 是一个面向金融报告场景的 **可编辑 PowerPoint 图表引擎**。它专注于：
 
-- 原生可编辑 `.pptx` 图表引擎
-- 金融时间序列友好的双轴组合图
-- 支持 `bar` / `line` / `area` 组合
-- 支持 `clustered` / `stacked` / `percent_stacked` 分组模式（当前以 bar/area 为主）
-- 支持日期轴控制、图表解析、金融预设配置
+- 生成原生可编辑 `.pptx` 图表，而不是截图或图片嵌入
+- 支持常见金融分析图族的程序化生成
+- 支持从生成后的图表反向恢复语义配置，形成 round-trip 能力
 
-## 当前范围
+这个仓库是底层图表内核，不负责整份报告编排、模板替换、数据连接器或 CLI 工作流；这些由上层仓库 `pptfi` 负责。
 
-已提取的核心模块：
+## 当前能力
 
-- `create_combo_chart()`：创建可编辑双轴组合图
-- `ChartBuilder` / `oxml`：底层图表 XML 生成能力
-- `ChartParser`：从现有 PPT 图表反向提取配置
-- `StyleConfig` / `ChartLayoutConfig` / `DateAxisConfig`
-- `presets.py`：4 个金融友好的预设图表配置
-- `create_waterfall_chart()`：第一版瀑布桥图（stacked bridge）
+### 1. Combo 图族
 
-## 示例
+- `bar / line / area`
+- `primary / secondary` 双轴
+- `clustered / stacked / percent_stacked`
+- 日期轴控制与预设
+- 图表样式与布局配置
+
+主入口：
+
+- `create_combo_chart()`
+
+### 2. Waterfall 图族
+
+- 基于 editable stacked bridge 的瀑布桥图
+- 支持正负贡献、总计 / 小计
+- 支持 connector line 与 value labels
+- 支持语义 round-trip
+
+主入口：
+
+- `create_waterfall_chart()`
+- `prepare_waterfall_dataframe()`
+- `parse_waterfall_chart()`
+- `parse_waterfall_from_pptx()`
+
+### 3. Scatter / Bubble 图族
+
+- standalone scatter chart
+- standalone bubble chart
+- 支持从图表反向恢复 `x/y/size` 语义
+
+主入口：
+
+- `create_scatter_chart()`
+- `create_bubble_chart()`
+- `parse_scatter_chart()`
+- `parse_scatter_from_pptx()`
+- `parse_bubble_chart()`
+- `parse_bubble_from_pptx()`
+
+## 当前安全范围
+
+### 稳定可用
+
+- combo 图族中的柱、线、面积组合
+- 双轴 financial time-series
+- stacked / percent-stacked
+- standalone waterfall
+- standalone scatter
+- standalone bubble
+- 元数据增强的 round-trip 解析
+
+### 暂未支持或暂不建议
+
+- candlestick / OHLC
+- sankey / mekko / tornado
+- scatter / bubble 与 bar/line/area 混搭
+- scatter 与 bubble 在同一个 `create_combo_chart()` 调用中混用
+
+## 安装
+
+```bash
+pip install -e .
+```
+
+依赖见 [pyproject.toml](./pyproject.toml)。
+
+## Quickstart
+
+### Combo
 
 ```python
 import pandas as pd
@@ -28,9 +89,9 @@ from pptchartengine import create_combo_chart
 
 df = pd.DataFrame(
     {
-        "日期": pd.date_range("2024-01-01", periods=12, freq="M"),
-        "指数": [3000, 3050, 3100, 3150, 3200, 3250, 3300, 3320, 3350, 3380, 3400, 3450],
-        "收益率": [0.01, 0.02, 0.03, 0.025, 0.04, 0.05, 0.048, 0.055, 0.06, 0.058, 0.065, 0.07],
+        "年份": [2021, 2022, 2023, 2024],
+        "营收": [100, 110, 120, 140],
+        "利润": [10, 12, 15, 18],
     }
 )
 
@@ -40,28 +101,130 @@ slide = prs.slides.add_slide(prs.slide_layouts[6])
 create_combo_chart(
     slide=slide,
     df=df,
-    categories_col="日期",
+    categories_col="年份",
     series_config=[
-        {"key": "指数", "name": "指数", "type": "bar", "axis": "secondary"},
-        {"key": "收益率", "name": "收益率", "type": "line", "axis": "primary"},
+        {"key": "营收", "name": "营收(亿元)", "type": "bar", "axis": "primary"},
+        {"key": "利润", "name": "利润(亿元)", "type": "line", "axis": "secondary"},
     ],
 )
 
-prs.save("demo.pptx")
+prs.save("combo-demo.pptx")
 ```
 
-## 预设
+### Waterfall
 
-当前导出的金融预设：
+```python
+import pandas as pd
+from pptx import Presentation
+from pptchartengine import create_waterfall_chart
 
-- `get_chart1_config`
-- `get_chart2_config`
-- `get_chart3_config`
-- `get_chart4_config`
+df = pd.DataFrame(
+    {
+        "阶段": ["期初收益", "权益贡献", "债券贡献", "汇率拖累", "期末收益"],
+        "贡献": [8.5, 2.1, 1.3, -1.8, 10.1],
+        "度量": ["total", "relative", "relative", "relative", "total"],
+    }
+)
 
-对应场景集中在养老金/收益率/仓位/久期类报告图。
+prs = Presentation()
+slide = prs.slides.add_slide(prs.slide_layouts[6])
 
-## 命名建议
+create_waterfall_chart(
+    slide=slide,
+    df=df,
+    categories_col="阶段",
+    value_col="贡献",
+    measure_col="度量",
+)
 
-- 核心包：`pptchartengine`
-- 上层 skill：`pptfi`
+prs.save("waterfall-demo.pptx")
+```
+
+### Scatter
+
+```python
+import pandas as pd
+from pptx import Presentation
+from pptchartengine import create_scatter_chart
+
+df = pd.DataFrame(
+    {
+        "波动率": [8.1, 9.2, 7.4],
+        "收益率": [10.5, 12.0, 8.8],
+    }
+)
+
+prs = Presentation()
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+
+create_scatter_chart(
+    slide=slide,
+    df=df,
+    x_col="波动率",
+    y_col="收益率",
+    series_name="风险收益分布",
+)
+
+prs.save("scatter-demo.pptx")
+```
+
+## Round-trip 设计
+
+这是这个仓库最重要的设计原则之一：
+
+- 生成端会把语义信息写进嵌入 workbook 的隐藏元数据 sheet
+- 解析端优先读元数据，而不是只靠 XML 猜测
+- 目标是恢复：
+  - `categories_col`
+  - `series key / name / type / axis / grouping`
+  - waterfall 的 `value_col / measure_col / totals`
+  - scatter / bubble 的 `x_col / y_col / size_col`
+
+这让 “生成后再解析回来继续改” 成为可行路径。
+
+## 测试
+
+```bash
+python -m pytest tests/test_package_contract.py
+```
+
+当前测试覆盖：
+
+- 公开导出接口
+- financial presets
+- combo round-trip
+- stacked / percent-stacked round-trip
+- waterfall 语义 round-trip
+- scatter / bubble round-trip
+
+## 仓库结构
+
+```text
+pptchartengine/
+├── src/pptchartengine/
+│   ├── api.py
+│   ├── builder.py
+│   ├── cleaner.py
+│   ├── date_axis.py
+│   ├── layout.py
+│   ├── parser.py
+│   ├── presets.py
+│   ├── scatter.py
+│   ├── styles.py
+│   ├── waterfall.py
+│   └── oxml/
+├── tests/
+├── pyproject.toml
+└── ISSUES.md
+```
+
+## 规划
+
+近期方向见 [ISSUES.md](./ISSUES.md)。
+
+当前优先级：
+
+1. 继续打磨 combo / grouping 稳定性
+2. 提升 waterfall 的报告级视觉质量
+3. 扩展 scatter / bubble 的上层工作流支持
+4. 下一重图族优先考虑 candlestick / OHLC
