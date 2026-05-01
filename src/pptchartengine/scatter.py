@@ -16,6 +16,7 @@ from pptx.slide import Slide
 from pptx.util import Inches, Pt
 
 from .api import _write_embedded_metadata
+from .api import _normalize_position_tuple, _normalize_size_tuple
 
 SCATTER_CHART_FAMILY = "scatter"
 BUBBLE_CHART_FAMILY = "bubble"
@@ -46,6 +47,8 @@ def create_scatter_chart(
     marker_size: int = 9,
 ):
     _validate_xy_input(df, x_col, y_col)
+    position = _normalize_position_tuple(position)
+    size = _normalize_size_tuple(size)
     chart_data = XyChartData()
     series = chart_data.add_series(series_name or y_col)
     for _, row in df.iterrows():
@@ -96,6 +99,8 @@ def create_bubble_chart(
     marker_size: int = 9,
 ):
     _validate_xy_input(df, x_col, y_col, size_col)
+    position = _normalize_position_tuple(position)
+    size = _normalize_size_tuple(size)
     chart_data = BubbleChartData()
     series = chart_data.add_series(series_name or y_col)
     for _, row in df.iterrows():

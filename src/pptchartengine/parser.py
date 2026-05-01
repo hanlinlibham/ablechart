@@ -22,6 +22,7 @@ import io
 from openpyxl import load_workbook
 
 from .oxml_ns import NAMESPACES
+from .semantic_anchor import iter_semantic_anchors
 
 METADATA_SHEET_NAME = "_pptchartengine_meta"
 
@@ -909,3 +910,90 @@ def parse_all_charts_from_pptx(pptx_path: str) -> List[Dict]:
     print(f"\n📊 总计解析 {len(all_charts)} 个图表")
     
     return all_charts
+
+
+def parse_semantic_component_from_pptx(
+    pptx_path: str,
+    slide_idx: int = 0,
+    component_idx: int = 0,
+) -> Dict:
+    """Parse one semantic component (chart-backed or anchor-backed) from a PPTX."""
+
+    components = parse_all_semantic_components_from_pptx(pptx_path, slide_idx=slide_idx)
+    if component_idx >= len(components):
+        raise ValueError(f"语义组件索引 {component_idx} 超出范围（共 {len(components)} 个）")
+    return components[component_idx]
+
+
+def parse_all_semantic_components_from_pptx(
+    pptx_path: str,
+    slide_idx: int | None = None,
+) -> List[Dict]:
+    """Discover semantic-family components, including non-chart anchor-backed ones."""
+
+    prs = Presentation(pptx_path)
+    components: list[dict] = []
+
+    slide_iter = enumerate(prs.slides)
+    for current_slide_idx, slide in slide_iter:
+        if slide_idx is not None and current_slide_idx != slide_idx:
+            continue
+
+        for shape_idx, shape, metadata in iter_semantic_anchors(slide):
+            family = metadata.get("semantic_family") or metadata.get("chart_family")
+            if not family:
+                continue
+            components.append(
+                {
+                    "slide_index": current_slide_idx,
+                    "component_index": len(components),
+                    "shape_idx": shape_idx,
+                    "shape_name": getattr(shape, "name", f"semantic-anchor-{shape_idx}"),
+                    "family": family,
+                    "base_chart_family": metadata.get("base_chart_family"),
+                    "metadata": metadata,
+                    "source": "anchor",
+                }
+            )
+
+        chart_count = 0
+        for shape_idx, shape in enumerate(slide.shapes):
+            if not hasattr(shape, "has_chart") or not shape.has_chart:
+                continue
+
+            chart_count += 1
+            try:
+                parser = ChartParser(shape.chart)
+                series_config, df, categories_col, layout_info = parser.parse()
+            except Exception as exc:
+                print(f"⚠️ 幻灯片 {current_slide_idx + 1}, 图表 {chart_count} 语义解析失败: {exc}")
+                continue
+
+            chart_metadata = layout_info.get("chart_metadata") if layout_info else None
+            if not isinstance(chart_metadata, dict):
+                continue
+
+            family = chart_metadata.get("semantic_family") or chart_metadata.get("chart_family")
+            if not family:
+                continue
+            if chart_metadata.get("semantic_parent_family"):
+                continue
+
+            components.append(
+                {
+                    "slide_index": current_slide_idx,
+                    "component_index": len(components),
+                    "shape_idx": shape_idx,
+                    "shape_name": getattr(shape, "name", f"图表 {chart_count}"),
+                    "family": family,
+                    "base_chart_family": chart_metadata.get("base_chart_family"),
+                    "metadata": chart_metadata,
+                    "layout_info": layout_info,
+                    "series_config": series_config,
+                    "df": df,
+                    "categories_col": categories_col,
+                    "source": "chart",
+                }
+            )
+
+    return components

@@ -14,6 +14,7 @@ from pptx.util import Inches
 import pandas as pd
 
 from .builder import ChartBuilder
+from .date_axis import format_category_label
 
 METADATA_SHEET_NAME = "_pptchartengine_meta"
 XY_CHART_TYPES = ("scatter", "bubble")
@@ -134,6 +135,8 @@ def create_combo_chart(
     if not series_config:
         raise ValueError("series_config 不能为空")
 
+    position = _normalize_position_tuple(position)
+    size = _normalize_size_tuple(size)
     _validate_series_config(df, categories_col, series_config)
     
     # 2. 创建引导图表（写入全部系列数据到嵌入 Excel）
@@ -198,10 +201,7 @@ def _bootstrap_chart(
         # 设置分类（X轴）
         categories = df[categories_col].tolist()
 
-        if pd.api.types.is_datetime64_any_dtype(df[categories_col]):
-            categories_bootstrap = [cat.strftime("%Y-%m-%d") if hasattr(cat, 'strftime') else str(cat) for cat in categories]
-        else:
-            categories_bootstrap = categories
+        categories_bootstrap = [format_category_label(cat) for cat in categories]
 
         chart_data.categories = categories_bootstrap
 
@@ -216,8 +216,8 @@ def _bootstrap_chart(
         chart_type = _get_chart_type(series_config[0].get("type", "bar"))
 
     # 创建图表
-    left, top = position
-    width, height = size
+    left, top = _normalize_position_tuple(position)
+    width, height = _normalize_size_tuple(size)
     graphic_frame = slide.shapes.add_chart(
         chart_type, left, top, width, height, chart_data
     )
@@ -260,6 +260,30 @@ def _build_xy_chart_data(
                 series.add_data_point(x_value, y_value)
 
     return chart_data, _get_chart_type(chart_family)
+
+
+def _normalize_position_tuple(position: tuple):
+    if len(position) != 2:
+        raise ValueError("position 必须是 (left, top)")
+    return tuple(_normalize_measure(value) for value in position)
+
+
+def _normalize_size_tuple(size: tuple):
+    if len(size) != 2:
+        raise ValueError("size 必须是 (width, height)")
+    return tuple(_normalize_measure(value) for value in size)
+
+
+def _normalize_measure(value):
+    if hasattr(value, "emu"):
+        return value
+    try:
+        numeric = float(value)
+    except Exception:
+        return value
+    if numeric < 1000:
+        return Inches(numeric)
+    return int(round(numeric))
 
 
 def _group_series(series_config: List[Dict]) -> Dict[tuple, List[Dict]]:
@@ -383,15 +407,13 @@ def _fix_embedded_excel_dates(chart, df: pd.DataFrame, categories_col: str):
             if hasattr(cat_value, 'to_pydatetime'):
                 cat_value = cat_value.to_pydatetime()
             
-            if isinstance(cat_value, datetime):
-                # ⭐ 将日期格式化为字符串 "yyyy/mm"（年份/月份）
-                date_str = cat_value.strftime('%Y/%m')
+            date_str = format_category_label(cat_value, "yyyy/mm")
+            if date_str != str(cat_value):
                 ws.cell(row=i, column=1).value = date_str
-                # 不设置数字格式，保持为文本
                 fixed_count += 1
         
         print(f"  → 已修正 {fixed_count} 个单元格")
-        print(f"  → 示例：{categories[0].strftime('%Y/%m') if isinstance(categories[0], datetime) or hasattr(categories[0], 'strftime') else 'N/A'}")
+        print(f"  → 示例：{format_category_label(categories[0], 'yyyy/mm') if categories else 'N/A'}")
         
         # 将修改后的 workbook 写回 blob
         output_stream = io.BytesIO()

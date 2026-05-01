@@ -11,7 +11,7 @@
 
 from lxml import etree
 from typing import Optional, Literal
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .oxml_ns import NAMESPACES
 
@@ -25,6 +25,57 @@ def excel_date(date: datetime) -> float:
     base_date = datetime(1899, 12, 30)  # Excel 的实际基准日期
     delta = date - base_date
     return float(delta.days)
+
+
+def format_category_label(value, number_format: str = "yyyy-mm-dd") -> str:
+    """Serialize date-like category values into stable human-readable labels.
+
+    Rules:
+    - when the value is date-like, suppress time-of-day by default
+    - honor coarse patterns like year / year-month / month-day
+    - fall back to plain string for non-date-like values
+    """
+
+    dt = _coerce_datetime(value)
+    if dt is None:
+        return str(value)
+
+    fmt = (number_format or "yyyy-mm-dd").lower()
+    if "yyyy/mm" in fmt and "dd" not in fmt:
+        return dt.strftime("%Y/%m")
+    if "yyyy-mm" in fmt and "dd" not in fmt:
+        return dt.strftime("%Y-%m")
+    if "yyyy" in fmt and "mm" not in fmt and "dd" not in fmt:
+        return dt.strftime("%Y")
+    if "mm-dd" in fmt and "yyyy" not in fmt:
+        return dt.strftime("%m-%d")
+    return dt.strftime("%Y-%m-%d")
+
+
+def _coerce_datetime(value):
+    if hasattr(value, "to_pydatetime"):
+        value = value.to_pydatetime()
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, float):
+        try:
+            return datetime(1899, 12, 30) + timedelta(days=value)
+        except Exception:
+            return None
+    if isinstance(value, str):
+        candidate = value.strip()
+        if not candidate:
+            return None
+        candidate = candidate.replace("T", " ")
+        try:
+            return datetime.fromisoformat(candidate)
+        except ValueError:
+            for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%Y/%m", "%Y-%m", "%Y%m%d"):
+                try:
+                    return datetime.strptime(candidate, fmt)
+                except ValueError:
+                    continue
+    return None
 
 
 class DateAxisConfig:
@@ -129,9 +180,12 @@ class DateAxisConfig:
             self._set_tick_label_position(cat_ax, 'low')
             print(f"  - 标签位置: 低（坐标轴下方）")
             
-            # ⭐ 设置标签间隔（控制显示数量不超过 7 个）
-            # 使用 major_unit 作为间隔值（向下取整）
-            label_interval = int(self.major_unit)
+            # ⭐ 设置标签间隔（控制显示数量）
+            # 由于当前实现走的是 catAx + 格式化字符串标签，major_unit_scale 不能直接
+            # 映射为 PowerPoint 的真正 month/year date axis 语义，所以这里按数据长度
+            # 做一次显示密度折算。
+            category_count = self._infer_category_count(chart_element)
+            label_interval = self._resolve_label_interval(category_count)
             self._set_label_interval(cat_ax, label_interval)
             print(f"  - 标签间隔: 每 {label_interval} 个点显示一个标签")
             
@@ -151,6 +205,38 @@ class DateAxisConfig:
             print(f"  ❌ 日期轴配置失败: {e}")
             import traceback
             traceback.print_exc()
+
+    def _resolve_label_interval(self, category_count: int | None) -> int:
+        """Map semantic date intent onto string-label density control."""
+
+        if category_count is None or category_count <= 0:
+            return max(1, int(self.major_unit))
+
+        if self.major_unit_scale == "months":
+            # Long daily histories should land around 8-12 visible month labels.
+            if category_count >= 360:
+                return max(1, category_count // 10)
+            if category_count >= 120:
+                return max(1, category_count // 8)
+            return max(1, int(self.major_unit))
+
+        if self.major_unit_scale == "years":
+            return max(1, category_count // 6)
+
+        return max(1, int(self.major_unit))
+
+    def _infer_category_count(self, chart_element) -> int | None:
+        """Best-effort count of category points from the first category cache."""
+
+        pt_count = chart_element.find('.//c:cat//c:ptCount', namespaces=NAMESPACES)
+        if pt_count is not None:
+            try:
+                return int(pt_count.get('val'))
+            except (TypeError, ValueError):
+                return None
+
+        pts = chart_element.findall('.//c:cat//c:pt', namespaces=NAMESPACES)
+        return len(pts) if pts else None
     
     def _convert_cat_to_numcache(self, chart_element):
         """
@@ -584,4 +670,3 @@ YEARLY_TICKS = DateAxisConfig(
     major_unit_scale="years",
     number_format="yyyy",
 )
-

@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 
 from ..oxml_ns import NAMESPACES
+from ..date_axis import format_category_label
 
 
 def get_excel_col_name(col_idx: int) -> str:
@@ -404,17 +405,7 @@ def _add_series_categories(ser, categories: list, series_idx: int):
             pt.set('idx', str(i))
             v = etree.SubElement(pt, f"{{{NAMESPACES['c']}}}v")
             
-            if isinstance(cat_value, datetime):
-                # 格式化为 "yyyy/mm"（年份/月份）
-                v.text = cat_value.strftime('%Y/%m')
-            elif isinstance(cat_value, float):
-                # Excel 日期序列号，转换为日期字符串
-                base_date = datetime(1899, 12, 30)
-                from datetime import timedelta
-                actual_date = base_date + timedelta(days=cat_value)
-                v.text = actual_date.strftime('%Y/%m')
-            else:
-                v.text = str(cat_value)
+            v.text = format_category_label(cat_value, "yyyy/mm")
     else:
         # 普通字符串分类
         strRef = etree.SubElement(cat, f"{{{NAMESPACES['c']}}}strRef")
