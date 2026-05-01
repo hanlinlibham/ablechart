@@ -8,6 +8,7 @@ from lxml import etree
 from typing import Literal
 
 from ..oxml_ns import NAMESPACES
+from ..date_axis import format_category_label
 
 ChartType = Literal['bar', 'column', 'line', 'area', 'scatter', 'bubble']
 ChartGrouping = Literal['clustered', 'standard', 'stacked', 'percent_stacked']
@@ -244,17 +245,7 @@ def add_plot_categories(plot_element, categories: list):
             pt.set('idx', str(i))
             v = etree.SubElement(pt, f"{{{NAMESPACES['c']}}}v")
             
-            if isinstance(cat_value, datetime):
-                # 格式化为 "yyyy/mm"（年份/月份）
-                v.text = cat_value.strftime('%Y/%m')
-            elif isinstance(cat_value, float):
-                # 假设是 Excel 日期序列号，转换为日期字符串
-                base_date = datetime(1899, 12, 30)
-                from datetime import timedelta
-                actual_date = base_date + timedelta(days=cat_value)
-                v.text = actual_date.strftime('%Y/%m')
-            else:
-                v.text = str(cat_value)
+            v.text = format_category_label(cat_value, "yyyy/mm")
     else:
         # ⭐ 使用 strRef + strCache（普通分类轴）
         strRef = etree.SubElement(cat, f"{{{NAMESPACES['c']}}}strRef")
@@ -273,4 +264,4 @@ def add_plot_categories(plot_element, categories: list):
             pt = etree.SubElement(strCache, f"{{{NAMESPACES['c']}}}pt")
             pt.set('idx', str(i))
             v = etree.SubElement(pt, f"{{{NAMESPACES['c']}}}v")
-            v.text = str(cat_value)
+            v.text = format_category_label(cat_value)
