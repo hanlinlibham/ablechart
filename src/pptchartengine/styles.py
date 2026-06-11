@@ -52,7 +52,7 @@ COLOR_SCHEMES = {
     "gtm":           ["595959", "29ABE2", "F5821F", "1F3864", "7B5EA7", "6BA43A", "00838F", "A6A6A6"],
     "midnight":      ["CADCFC", "1E2761", "E8B931", "4A6FA5", "9BB5D6", "B08C28", "8896AB", "484E5C"],
     "charcoal":      ["A8B4BE", "36454F", "E8B931", "607D8B", "B0BEC5", "C4A035", "78909C", "4A565E"],
-    "jp_finance":    ["A8D5DC", "1B3D6E", "C9A84C", "4A8FB8", "7FBFCF", "A07840", "8FA8C0", "505868"],
+    "able_finance":    ["A8D5DC", "1B3D6E", "C9A84C", "4A8FB8", "7FBFCF", "A07840", "8FA8C0", "505868"],
     "pension_warm":  ["A8C4D4", "2E5FA3", "D4903F", "7BA7BC", "B0C9B0", "9C7B48", "8A9DB8", "606870"],
     "tech_blue":     ["90CAF9", "1565C0", "00BFA5", "7E57C2", "29B6F6", "FF7043", "90A4AE", "546E7A"],
     "state_red":     ["CDAC60", "8B0000", "B8860B", "4A6FA5", "C07840", "507050", "907878", "585048"],

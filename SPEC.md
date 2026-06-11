@@ -75,7 +75,7 @@ Chart spec 校验失败 (2 处):
   "stacked": true,                   // 便捷开关：全部柱状系列堆叠
   "grouping": "percent",             // 或百分比堆叠
   "style": {
-    "theme": "jp_finance",           // 10 套主题
+    "theme": "able_finance",           // 10 套主题
     "colors": ["#1B3D6E", "gold"],   // 自定义调色板（优先于 theme）
     "line_width": 1.5, "marker": "none"
   },
