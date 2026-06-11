@@ -277,6 +277,11 @@ class ChartBuilder:
         if self.layout_config is not None:
             self.layout_config.apply_to_chart(self.chart)
 
+        # ⭐ 单系列时渲染器会在 autoTitleDeleted≠1 时自动生成"系列名"大标题
+        # → 未显式配置标题则无条件关闭（写入 <c:autoTitleDeleted val="1"/>）
+        if self.layout_config is None or not getattr(self.layout_config, "title", None):
+            self.chart.has_title = False
+
         # 5. ⭐ ChartJunkCleaner: 自动清洗默认 PPT 样式
         try:
             from .cleaner import clean_chart

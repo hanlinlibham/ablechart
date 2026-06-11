@@ -98,8 +98,8 @@ def nice_range(
         vmin = min(vmin, 0.0)
         vmax = max(vmax, 0.0)
     elif include_zero == "auto":
-        # 数据全为正且波动幅度小于整体量级的 40% → 收窄；否则归零起步
-        if vmin > 0 and (vmax - vmin) < 0.4 * vmax:
+        # 数据全为正且波动幅度小于整体量级的 60% → 收窄；否则归零起步
+        if vmin > 0 and (vmax - vmin) < 0.6 * vmax:
             pass  # 紧贴数据
         elif vmin >= 0:
             vmin = 0.0
@@ -415,6 +415,7 @@ def polish_combo_chart(
         for ax, vmin, vmax, zero in scalable:
             nmin, nmax, unit = nice_range(vmin, vmax, best_n, include_zero=zero)
             set_axis_scale(ax, nmin, nmax, unit)
+            _ensure_format_resolution(ax, unit)
 
     # 2. 柱宽
     set_gap_width(chart, GAP_WIDTH_CLUSTERED)
@@ -450,6 +451,27 @@ def polish_combo_chart(
         set_axis_text(ax, font=font, size_pt=size)
         # 横向条形图的值轴在底部，保留轴线作为基准；纵向值轴不画线
         style_axis_line(ax, AXIS_LINE_COLOR if horizontal else None)
+
+
+def _ensure_format_resolution(ax, unit: float) -> None:
+    """轴数字格式精度自适应步长：步长 0.5% 配 "0%" 会产生 1%,1%,2%,2% 重复标签。"""
+    num_fmt = ax.find(f"{{{C}}}numFmt")
+    if num_fmt is None:
+        return
+    code = num_fmt.get("formatCode", "")
+    if "." in code or unit <= 0:
+        return  # 已带小数位的不动
+    if code.endswith("%"):
+        unit_scaled = unit * 100
+    elif code in ("0", "#,##0"):
+        unit_scaled = unit
+    else:
+        return
+    if unit_scaled >= 1 - 1e-9:
+        return
+    decimals = max(1, math.ceil(-math.log10(unit_scaled)))
+    body = code[:-1] if code.endswith("%") else code
+    num_fmt.set("formatCode", body + "." + "0" * decimals + ("%" if code.endswith("%") else ""))
 
 
 def _choose_tick_count(axis_specs: List[Tuple[float, float, str]], options=(4, 5, 6)) -> int:

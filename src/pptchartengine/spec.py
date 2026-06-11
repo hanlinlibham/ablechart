@@ -523,6 +523,16 @@ def _normalize_combo(spec, df, raw_kind, errors, warnings) -> NormalizedSpec:
         or (date_format and any(ch in str(date_format).lower() for ch in "ymd"))
         or pd.api.types.is_datetime64_any_dtype(df[cat_col])
     )
+    if not wants_date and pd.api.types.is_string_dtype(df[cat_col]):
+        # CSV 里的日期常是字符串：形如 yyyy-mm(-dd) / yyyy/mm(/dd) 时自动转日期轴
+        sample = df[cat_col].astype(str).str.strip()
+        if sample.str.match(r"^\d{4}[-/]\d{1,2}([-/]\d{1,2})?$").all():
+            try:
+                df[cat_col] = pd.to_datetime(sample)
+                wants_date = True
+                warnings.append(f"categories: 列 '{cat_col}' 识别为日期字符串，已启用日期轴")
+            except Exception:
+                pass
     if wants_date and not pd.api.types.is_datetime64_any_dtype(df[cat_col]):
         try:
             df[cat_col] = pd.to_datetime(df[cat_col])
@@ -1267,9 +1277,11 @@ def _apply_series_override(chart, override: Dict):
             line_width = int(override["line_width_pt"] * 12700)
         elif override.get("color"):
             line_width = _existing_line_width(ser)
+        # 只改线宽/标记时必须把已有颜色带回去，否则 ln 重建后颜色丢失、回退主题色
+        color = override.get("color") or _existing_series_color(ser)
         apply_series_style(
             ser,
-            color=override.get("color"),
+            color=color,
             line_width=line_width,
             marker_style=override.get("marker_style"),
             marker_size=override.get("marker_size"),
@@ -1281,6 +1293,14 @@ def _series_name(ser) -> Optional[str]:
         node = ser.find(path, namespaces=NAMESPACES)
         if node is not None and node.text:
             return node.text
+    return None
+
+
+def _existing_series_color(ser) -> Optional[str]:
+    for path in ("c:spPr/a:ln/a:solidFill/a:srgbClr", "c:spPr/a:solidFill/a:srgbClr"):
+        node = ser.find(path, namespaces=NAMESPACES)
+        if node is not None:
+            return node.get("val")
     return None
 
 
