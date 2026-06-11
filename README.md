@@ -10,6 +10,57 @@
 
 ## 当前能力
 
+### 0. 声明式 Spec 接口（低门槛 / LLM 友好）
+
+一个 JSON dict 进、图表出，不需要 import 配置类、不需要 pptx 枚举：
+
+```python
+from pptchartengine import render_chart
+
+render_chart(slide, {
+    "title": "营收与增速",
+    "data": {"年份": [2021, 2022, 2023], "营收": [100, 120, 150], "增速": [0.2, 0.2, 0.25]},
+    "series": ["营收", {"column": "增速", "type": "line", "axis": "right", "color": "#C00000"}],
+    "layout": {"y2_axis": {"format": "percent"}},
+})
+```
+
+- 类型/轴/图例/颜色接受大量中英文别名（`"折线"`、`"右轴"`、`"红"` 都行）
+- 缺省字段智能推断（不给 series 就画全部数值列，日期列自动启用日期轴）
+- `validate_spec()` 只校验不渲染，列名拼错返回"是否想用 xxx"建议
+- `chart_spec_reference()` 返回速查表，可直接拼进 LLM 提示词
+
+完整说明见 [SPEC.md](./SPEC.md)。
+
+主入口：
+
+- `render_chart()`
+- `validate_spec()`
+- `chart_spec_reference()`
+
+### 0.5 McKinsey 收尾（默认开启）
+
+所有创建入口默认执行 `polish` pass（`polish=False` 关闭）：
+
+- 智能值轴范围：nice 刻度、数据远离 0 自动收窄、双轴共用格数网格严格对齐
+- 柱宽 gapWidth 80%（堆叠 50%），标题 13pt 加粗左对齐，轴文字 9pt 灰，值轴无轴线
+- 瀑布图：绘图区 manualLayout 钉定 + 显式轴范围，数值标签/连接线精确对位，
+  默认隐藏值轴、哑光配色（鼠尾草绿/砖红/海军蓝）、千分位标签、防碰撞布局
+- 散点/气泡：两轴 nice 缩放（不浪费画面）、气泡 72% 透明度、刻度标签固定底部
+- 配色新增 `mckinsey` 主题；`default` 改为深色优先
+
+### 0.8 GTM 模式库（提炼自 J.P. Morgan《Guide to the Markets》）
+
+面向真实金融场景的图型与注释元素：
+
+- **contribution 贡献分解**：堆叠分项 + 合计橙线（GDP/通胀/收入分解标配）
+- **range 估值区间图**：历史区间浮动条 + 均值横杠 + 当前菱形（PE/PB 分位、利差区间、波动率锥）
+- **横向排名条**：`orientation: horizontal`，支持柱上数值标签与单类目高亮
+- **注释层**：均值/参考虚线（行内彩色标签）、目标区间色带、末点圆点+日期数值标注、
+  预测分隔虚线 + 斜纹预测柱（manualLayout 钉定绘图区，精确对位）
+- **原生可编辑**：数值标签（dLbls）、高亮（dPt）、斜纹（pattFill）均为原生 XML
+- 配色新增 `gtm` 主题（灰+青主对、橙色专属合计线）
+
 ### 1. Combo 图族
 
 - `bar / line / area`

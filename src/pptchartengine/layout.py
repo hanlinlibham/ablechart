@@ -29,7 +29,7 @@ class LegendConfig:
         self,
         position = XL_LEGEND_POSITION.BOTTOM,
         font_size_pt: float = 10,
-        font_name: str = "黑体",
+        font_name: str = "微软雅黑",
         include_in_layout: bool = False,
     ):
         """
@@ -93,7 +93,7 @@ class CategoryAxisConfig:
         minor_tick_mark = XL_TICK_MARK.NONE,
         number_format: Optional[str] = None,
         font_size_pt: float = 10,
-        font_name: str = "黑体",
+        font_name: str = "微软雅黑",
     ):
         """
         初始化横轴配置
@@ -175,7 +175,7 @@ class ValueAxisConfig:
         minor_tick_mark = XL_TICK_MARK.NONE,
         number_format: Optional[str] = None,
         font_size_pt: float = 10,
-        font_name: str = "黑体",
+        font_name: str = "微软雅黑",
         has_major_gridlines: bool = True,
         min_value: Optional[float] = None,
         max_value: Optional[float] = None,
@@ -214,11 +214,11 @@ class ValueAxisConfig:
             chart_element = chart._element
             val_ax_elements = chart_element.findall('.//{http://schemas.openxmlformats.org/drawingml/2006/chart}valAx')
             
-            # 主值轴是 position='l' 的那个
+            # 主值轴：纵向图在左侧（'l'），横向条形图在底部（'b'）
             primary_ax = None
             for ax in val_ax_elements:
                 ax_pos = ax.find('.//{http://schemas.openxmlformats.org/drawingml/2006/chart}axPos')
-                if ax_pos is not None and ax_pos.get('val') == 'l':
+                if ax_pos is not None and ax_pos.get('val') in ('l', 'b'):
                     primary_ax = ax
                     break
             
@@ -339,7 +339,7 @@ class ValueAxisConfig:
 DEFAULT_LEGEND_CONFIG = LegendConfig(
     position=XL_LEGEND_POSITION.BOTTOM,
     font_size_pt=9,
-    font_name="黑体",
+    font_name="微软雅黑",
     include_in_layout=False,
 )
 
@@ -349,7 +349,7 @@ DEFAULT_CATEGORY_AXIS_CONFIG = CategoryAxisConfig(
     major_tick_mark=XL_TICK_MARK.OUTSIDE,  # ⭐ 改为 OUTSIDE（与原图一致）
     minor_tick_mark=XL_TICK_MARK.NONE,
     font_size_pt=9,
-    font_name="黑体",
+    font_name="微软雅黑",
 )
 
 # 默认纵轴配置：无网格线、9pt 黑体
@@ -358,7 +358,7 @@ DEFAULT_VALUE_AXIS_CONFIG = ValueAxisConfig(
     major_tick_mark=XL_TICK_MARK.OUTSIDE,
     minor_tick_mark=XL_TICK_MARK.NONE,
     font_size_pt=9,
-    font_name="黑体",
+    font_name="微软雅黑",
     has_major_gridlines=False,  # ⭐ 改为 False（原图无网格线）
 )
 

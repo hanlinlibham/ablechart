@@ -16,6 +16,8 @@ from pptx.slide import Slide
 from pptx.util import Inches, Pt
 
 from .api import _write_embedded_metadata
+from .oxml_ns import NAMESPACES
+from .polish import polish_xy_chart
 
 SCATTER_CHART_FAMILY = "scatter"
 BUBBLE_CHART_FAMILY = "bubble"
@@ -42,7 +44,7 @@ def create_scatter_chart(
     series_name: str | None = None,
     position: tuple = (Inches(1), Inches(2)),
     size: tuple = (Inches(8), Inches(4.5)),
-    color: str = "1E2761",
+    color: str = "1F3864",
     marker_size: int = 9,
 ):
     _validate_xy_input(df, x_col, y_col)
@@ -60,6 +62,7 @@ def create_scatter_chart(
         chart_data,
     ).chart
     _style_xy_or_bubble_chart(chart, color=color, marker_size=marker_size)
+    polish_xy_chart(chart, df[x_col].tolist(), df[y_col].tolist())
     _write_embedded_metadata(
         chart,
         x_col,
@@ -92,7 +95,7 @@ def create_bubble_chart(
     series_name: str | None = None,
     position: tuple = (Inches(1), Inches(2)),
     size: tuple = (Inches(8), Inches(4.5)),
-    color: str = "1E2761",
+    color: str = "1F3864",
     marker_size: int = 9,
 ):
     _validate_xy_input(df, x_col, y_col, size_col)
@@ -110,6 +113,7 @@ def create_bubble_chart(
         chart_data,
     ).chart
     _style_xy_or_bubble_chart(chart, color=color, marker_size=marker_size, is_bubble=True)
+    polish_xy_chart(chart, df[x_col].tolist(), df[y_col].tolist())
     _write_embedded_metadata(
         chart,
         x_col,
@@ -268,6 +272,20 @@ def _style_xy_or_bubble_chart(chart, *, color: str, marker_size: int, is_bubble:
         series.format.line.width = Pt(1)
     except Exception:
         pass
+    if is_bubble:
+        _set_fill_alpha(series, 72)
+
+
+def _set_fill_alpha(series, alpha_percent: int) -> None:
+    """气泡填充加透明度，重叠气泡可分辨（alpha 元素挂在 srgbClr 下）。"""
+    from lxml import etree
+
+    ser_el = series._element
+    srgb = ser_el.find("c:spPr/a:solidFill/a:srgbClr", namespaces=NAMESPACES)
+    if srgb is None:
+        return
+    alpha = etree.SubElement(srgb, f"{{{NAMESPACES['a']}}}alpha")
+    alpha.set("val", str(alpha_percent * 1000))
 
 
 def _validate_xy_input(df: pd.DataFrame, x_col: str, y_col: str, size_col: str | None = None) -> None:

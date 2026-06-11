@@ -42,6 +42,8 @@ def create_combo_chart(
     style_config=None,
     layout_config=None,
     metadata: Optional[Dict] = None,
+    polish: bool = True,
+    orientation: str = "vertical",
 ):
     """
     创建组合图（支持 P(n,2) 任意组合）
@@ -138,21 +140,27 @@ def create_combo_chart(
     
     # 2. 创建引导图表（写入全部系列数据到嵌入 Excel）
     chart = _bootstrap_chart(
-        slide, df, categories_col, series_config, position, size
+        slide, df, categories_col, series_config, position, size, orientation=orientation
     )
     
+    # ⭐ 日期分类的显示格式：跟随 layout_config.date_axis_config.number_format
+    date_format = _resolve_category_date_format(layout_config)
+
     # ⭐ 核心修复：修正嵌入的 Excel 工作表中的日期数据
     # 如果分类列是日期类型，需要将 Excel 工作表中的文本日期转换为真实的日期数值
-    _fix_embedded_excel_dates(chart, df, categories_col)
+    _fix_embedded_excel_dates(chart, df, categories_col, date_format=date_format)
     _write_embedded_metadata(chart, categories_col, series_config, metadata=metadata)
-    
+
     # 3. 使用构建器完成剩余工作（传递样式配置和布局配置）
     builder = ChartBuilder(
-        chart, 
-        df, 
+        chart,
+        df,
         categories_col,
         style_config=style_config if style_config is not None else DEFAULT_STYLE_CONFIG,
-        layout_config=layout_config
+        layout_config=layout_config,
+        polish=polish,
+        date_format=date_format,
+        orientation=orientation,
     )
     
     # 注意：引导图表已经创建了第一个系列，构建器会继续追加
@@ -168,6 +176,7 @@ def _bootstrap_chart(
     series_config: List[Dict],
     position: tuple,
     size: tuple,
+    orientation: str = "vertical",
 ):
     """
     创建引导图表（写入全部系列数据到嵌入 Excel）
@@ -214,6 +223,8 @@ def _bootstrap_chart(
 
         # 使用第一个系列的类型决定引导图表类型
         chart_type = _get_chart_type(series_config[0].get("type", "bar"))
+        if orientation == "horizontal" and chart_type == XL_CHART_TYPE.COLUMN_CLUSTERED:
+            chart_type = XL_CHART_TYPE.BAR_CLUSTERED
 
     # 创建图表
     left, top = position
@@ -333,17 +344,28 @@ def _validate_xy_series_config(
             pd.to_numeric(df[size_key], errors="raise")
 
 
-def _fix_embedded_excel_dates(chart, df: pd.DataFrame, categories_col: str):
+def _resolve_category_date_format(layout_config) -> str:
+    """从 layout_config 推导日期分类的 strftime 格式，默认 '%Y/%m'。"""
+    from .polish import strftime_from_excel
+
+    number_format = None
+    if layout_config is not None and getattr(layout_config, "date_axis_config", None) is not None:
+        number_format = getattr(layout_config.date_axis_config, "number_format", None)
+    return strftime_from_excel(number_format)
+
+
+def _fix_embedded_excel_dates(chart, df: pd.DataFrame, categories_col: str, date_format: str = "%Y/%m"):
     """
     修正嵌入的 Excel 工作表中的日期数据
-    
+
     新方案：将日期格式化为字符串标签（如 "2024/01"）
     这样 PowerPoint 就会正确显示，而不会出现 1900 年问题
-    
+
     Args:
         chart: python-pptx Chart 对象
         df: 数据 DataFrame
         categories_col: 分类列名
+        date_format: 日期 → 字符串的 strftime 格式
     """
     # 检查是否为日期类型
     if not pd.api.types.is_datetime64_any_dtype(df[categories_col]):
@@ -382,16 +404,16 @@ def _fix_embedded_excel_dates(chart, df: pd.DataFrame, categories_col: str):
         for i, cat_value in enumerate(categories, start=2):
             if hasattr(cat_value, 'to_pydatetime'):
                 cat_value = cat_value.to_pydatetime()
-            
+
             if isinstance(cat_value, datetime):
-                # ⭐ 将日期格式化为字符串 "yyyy/mm"（年份/月份）
-                date_str = cat_value.strftime('%Y/%m')
+                # ⭐ 将日期格式化为字符串（格式跟随 date_axis_config.number_format）
+                date_str = cat_value.strftime(date_format)
                 ws.cell(row=i, column=1).value = date_str
                 # 不设置数字格式，保持为文本
                 fixed_count += 1
-        
+
         print(f"  → 已修正 {fixed_count} 个单元格")
-        print(f"  → 示例：{categories[0].strftime('%Y/%m') if isinstance(categories[0], datetime) or hasattr(categories[0], 'strftime') else 'N/A'}")
+        print(f"  → 示例：{categories[0].strftime(date_format) if isinstance(categories[0], datetime) or hasattr(categories[0], 'strftime') else 'N/A'}")
         
         # 将修改后的 workbook 写回 blob
         output_stream = io.BytesIO()

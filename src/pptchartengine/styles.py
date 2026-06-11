@@ -45,6 +45,11 @@ DEFAULT_COLOR_SEQUENCE = [
 
 # ── 主题配套图表系列色（每个主题一套 8 色） ──
 COLOR_SCHEMES = {
+    # McKinsey 风格：深海军蓝主色 + 亮蓝/青绿辅助 + 灰阶，深色优先保证单系列可读
+    "mckinsey":      ["1F3864", "2E9BD6", "00A398", "8C8C8C", "9DC3E6", "C9A84C", "5C7A93", "404040"],
+    # JPM Guide to the Markets 风格：灰+青为主对，橙色留给"合计/净值"线，
+    # 海军蓝/紫/橄榄绿做分项（提炼自 GTM 堆叠贡献图的固定用色顺序）
+    "gtm":           ["595959", "29ABE2", "F5821F", "1F3864", "7B5EA7", "6BA43A", "00838F", "A6A6A6"],
     "midnight":      ["CADCFC", "1E2761", "E8B931", "4A6FA5", "9BB5D6", "B08C28", "8896AB", "484E5C"],
     "charcoal":      ["A8B4BE", "36454F", "E8B931", "607D8B", "B0BEC5", "C4A035", "78909C", "4A565E"],
     "jp_finance":    ["A8D5DC", "1B3D6E", "C9A84C", "4A8FB8", "7FBFCF", "A07840", "8FA8C0", "505868"],
@@ -55,8 +60,8 @@ COLOR_SCHEMES = {
     "dark_pro":      ["00BFFF", "FFD700", "00E676", "7B68EE", "FF6D00", "E040FB", "A0B0C0", "4A5868"],
     "morningstar":   ["A4C2D8", "1D2B3A", "E67E22", "5A9BD5", "95C8D8", "B87333", "7B8794", "495057"],
     "macro_research":["AED6F1", "2C3E50", "3498DB", "95A5A6", "85C1E9", "1ABC9C", "BDC3C7", "566573"],
-    # 兜底别名
-    "default":       ["CADCFC", "1E2761", "E8B931", "4A6FA5", "9BB5D6", "B08C28", "8896AB", "484E5C"],
+    # 兜底别名：深色优先（浅色开头会让单系列折线图几乎不可见）
+    "default":       ["1F3864", "2E9BD6", "00A398", "8C8C8C", "9DC3E6", "C9A84C", "5C7A93", "404040"],
 }
 
 # ============================================================================
@@ -280,37 +285,43 @@ def get_color_for_series(series_index: int, color_scheme: str = "default") -> st
 
 class StyleConfig:
     """样式配置类"""
-    
+
     def __init__(
         self,
         color_scheme: str = "default",
         line_width_pt: float = 1.0,
         marker_style: str = "none",
         marker_size: int = 5,
+        colors: List[str] = None,
     ):
         """
         初始化样式配置
-        
+
         Args:
             color_scheme: 颜色方案（"default", "dark_only", "light_only" 等）
-            line_width_pt: 线宽（pt）
+            line_width_pt: 线宽（pt），任意正数均可
             marker_style: 标记点样式（"none", "circle", "square" 等）
             marker_size: 标记点大小（pt）
+            colors: 自定义调色板（6 位十六进制 RGB 列表），提供时优先于 color_scheme
         """
         self.color_scheme = color_scheme
-        self.line_width = LINE_WIDTH_PT.get(line_width_pt, DEFAULT_LINE_WIDTH)
+        self.line_width = LINE_WIDTH_PT.get(line_width_pt) or max(1, int(line_width_pt * 12700))
         self.marker_style = marker_style
         self.marker_size = marker_size
-    
+        self.colors = [c.lstrip("#").upper() for c in colors] if colors else None
+
     def apply_to_series(self, ser_element, series_index: int):
         """
         将样式应用到系列元素
-        
+
         Args:
             ser_element: 系列元素
             series_index: 系列索引（用于选择颜色）
         """
-        color = get_color_for_series(series_index, self.color_scheme)
+        if self.colors:
+            color = self.colors[series_index % len(self.colors)]
+        else:
+            color = get_color_for_series(series_index, self.color_scheme)
         
         apply_series_style(
             ser_element,

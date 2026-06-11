@@ -18,9 +18,18 @@ from .api import create_combo_chart
 from .oxml_ns import NAMESPACES
 from .parser import ChartParser
 
-DEFAULT_POSITIVE = "10B981"
-DEFAULT_NEGATIVE = "EF4444"
-DEFAULT_TOTAL = "1E2761"
+# 哑光金融配色：鼠尾草绿 / 砖红 / 海军蓝（与 mckinsey 主题同系）
+DEFAULT_POSITIVE = "588157"
+DEFAULT_NEGATIVE = "B0413E"
+DEFAULT_TOTAL = "1F3864"
+
+# 钉定 plot 区域的布局比例（manualLayout，图表区域的分数坐标）
+_PLOT_X = 0.02
+_PLOT_W = 0.96
+_PLOT_Y_NO_TITLE = 0.08
+_PLOT_Y_WITH_TITLE = 0.18
+_PLOT_BOTTOM_MARGIN = 0.12  # 留给分类标签
+_GAP_WIDTH = 50  # 堆叠柱 gapWidth（%），overlay 几何依赖此值
 
 WATERFALL_CHART_FAMILY = "waterfall"
 WATERFALL_SPEC_VERSION = 1
@@ -183,21 +192,17 @@ def create_waterfall_chart(
     negative_color: str = DEFAULT_NEGATIVE,
     total_color: str = DEFAULT_TOTAL,
     show_legend: bool = False,
-    show_connectors: bool = False,
+    show_connectors: bool = True,
     show_value_labels: bool = True,
+    show_y_axis: bool = False,
+    title: str | None = None,
     label_font_name: str = "微软雅黑",
 ):
     """Create an editable waterfall chart using stacked columns.
 
-    ``show_connectors`` defaults to False because the slide-level connector
-    overlay is computed against a hardcoded plot-area inset that does not
-    match Windows PowerPoint's actual auto-layout, so the rectangles drift
-    above the bar tops by ~0.5 chart units. Aligning them properly would
-    require pinning the chart's plot area and value-axis range, which is
-    a larger refactor tracked separately. Callers who explicitly opt back
-    in via ``show_connectors=True`` will still get the (slightly drifted)
-    rectangles — that path is preserved for macOS users where the inset
-    happened to line up.
+    绘图区通过 manualLayout 钉定、值轴范围显式设定，因此 slide 级 overlay
+    （数值标签 / 连接线）与柱体精确对位，``show_connectors`` 默认开启。
+    McKinsey 惯例默认隐藏值轴（数值标签承载信息），``show_y_axis=True`` 可显示。
     """
 
     waterfall_spec = build_waterfall_spec(
@@ -218,6 +223,13 @@ def create_waterfall_chart(
         measure_col=measure_col,
         total_categories=total_categories,
     )
+    semantic_rows = _collect_waterfall_rows(
+        df,
+        categories_col,
+        value_col,
+        measure_col=measure_col,
+        total_categories=total_categories,
+    )
 
     chart = create_combo_chart(
         slide=slide,
@@ -232,18 +244,45 @@ def create_waterfall_chart(
 
     _style_waterfall_series(chart, positive_color, negative_color, total_color)
     chart.has_legend = show_legend
+    if title:
+        chart.has_title = True
+        chart.chart_title.text_frame.text = title
+
+    # ⭐ 钉定几何：显式值轴范围 + manualLayout 固定绘图区
+    from .polish import (
+        nice_range, set_axis_scale, pin_plot_area, hide_axis,
+        set_gap_width, style_chart_title, style_gridlines, find_axes,
+    )
+
+    bounds = _waterfall_value_bounds(semantic_rows)
+    y_min, y_max, _unit = nice_range(bounds[0], bounds[1], 5, include_zero="always")
+
+    plot_y = _PLOT_Y_WITH_TITLE if title else _PLOT_Y_NO_TITLE
+    plot_x = 0.07 if show_y_axis else _PLOT_X
+    plot_w = 0.91 if show_y_axis else _PLOT_W
+    plot_h = 1.0 - plot_y - _PLOT_BOTTOM_MARGIN
+
+    axes = find_axes(chart)
+    for ax, _pos in axes["val"]:
+        set_axis_scale(ax, y_min, y_max, _unit)
+        style_gridlines(ax, on=False)
+        if not show_y_axis:
+            hide_axis(ax)
+    for ax in axes["cat"]:
+        style_gridlines(ax, on=False)
+    set_gap_width(chart, _GAP_WIDTH, stacked_percent=_GAP_WIDTH)
+    pin_plot_area(chart, x=plot_x, y=plot_y, w=plot_w, h=plot_h)
+    style_chart_title(chart)
+
     if show_connectors or show_value_labels:
         _add_waterfall_overlays(
             slide=slide,
-            semantic_rows=_collect_waterfall_rows(
-                df,
-                categories_col,
-                value_col,
-                measure_col=measure_col,
-                total_categories=total_categories,
-            ),
+            semantic_rows=semantic_rows,
             position=position,
             size=size,
+            plot_fractions=(plot_x, plot_y, plot_w, plot_h),
+            y_range=(y_min, y_max),
+            gap_width_percent=_GAP_WIDTH,
             positive_color=positive_color,
             negative_color=negative_color,
             total_color=total_color,
@@ -252,6 +291,20 @@ def create_waterfall_chart(
             label_font_name=label_font_name,
         )
     return chart
+
+
+def _waterfall_value_bounds(semantic_rows: list[dict[str, Any]]) -> tuple[float, float]:
+    """瀑布桥的累计值上下界（含 0 基线）。"""
+    bounds = [0.0]
+    cumulative = 0.0
+    for row in semantic_rows:
+        bounds.append(cumulative)
+        if row["is_total"]:
+            cumulative = row["value"]
+        else:
+            cumulative += row["value"]
+        bounds.append(cumulative)
+    return min(bounds), max(bounds)
 
 
 def get_waterfall_spec(layout_info: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -539,6 +592,9 @@ def _add_waterfall_overlays(
     semantic_rows: list[dict[str, Any]],
     position,
     size,
+    plot_fractions: tuple[float, float, float, float],
+    y_range: tuple[float, float],
+    gap_width_percent: int,
     positive_color: str,
     negative_color: str,
     total_color: str,
@@ -546,54 +602,43 @@ def _add_waterfall_overlays(
     show_value_labels: bool,
     label_font_name: str,
 ) -> None:
+    """精确几何 overlay：plot 区域已被 manualLayout 钉定、值轴范围已显式设定，
+    这里用同一组参数反推每根柱体的像素位置，标签与连接线不再漂移。"""
+    n = len(semantic_rows)
+    if n == 0:
+        return
+
     left = _emu_to_inches(position[0])
     top = _emu_to_inches(position[1])
     width = _emu_to_inches(size[0])
     height = _emu_to_inches(size[1])
 
-    plot_left = left + 0.55
-    plot_top = top + 0.35
-    plot_width = max(width - 1.0, 1.0)
-    plot_height = max(height - 0.95, 1.0)
+    fx, fy, fw, fh = plot_fractions
+    plot_left = left + fx * width
+    plot_top = top + fy * height
+    plot_width = fw * width
+    plot_height = fh * height
 
-    value_bounds = [0.0]
-    cumulative = 0.0
-    cumulative_before_rows = []
-    for row in semantic_rows:
-        cumulative_before_rows.append(cumulative)
-        if row["is_total"]:
-            cumulative = row["value"]
-        else:
-            cumulative += row["value"]
-        value_bounds.extend([cumulative_before_rows[-1], cumulative])
-
-    y_max = max(value_bounds) if value_bounds else 0.0
-    y_min = min(value_bounds) if value_bounds else 0.0
-    if y_min >= 0:
-        y_min = 0.0
-    padding = (y_max - y_min) * 0.12 if y_max != y_min else max(abs(y_max) * 0.12, 1.0)
-    y_max += padding
-    y_min -= padding
-    if y_max == y_min:
-        y_max += 1.0
-        y_min -= 1.0
+    y_min, y_max = y_range
 
     def value_to_y(value: float) -> float:
         ratio = (value - y_min) / (y_max - y_min)
         return plot_top + plot_height * (1 - ratio)
 
-    n = len(semantic_rows)
-    if n == 0:
-        return
-    gap = min(0.22, plot_width * 0.02)
-    bar_width = (plot_width - gap * (n - 1)) / n
+    # 分类槽位均分；gapWidth=G% 时柱宽 = 槽宽 × 100/(100+G)，柱体在槽内居中
+    slot = plot_width / n
+    bar_width = slot * 100.0 / (100.0 + gap_width_percent)
 
+    cumulative = 0.0
     previous_end_value = None
     previous_right = None
     for index, row in enumerate(semantic_rows):
-        x = plot_left + index * (bar_width + gap)
-        start_value = cumulative_before_rows[index]
+        start_value = cumulative
         end_value = row["value"] if row["is_total"] else start_value + row["value"]
+        cumulative = end_value
+
+        slot_left = plot_left + index * slot
+        bar_left = slot_left + (slot - bar_width) / 2
 
         if row["is_total"]:
             top_value = max(end_value, 0.0)
@@ -612,36 +657,48 @@ def _add_waterfall_overlays(
             _add_rect(
                 slide,
                 previous_right,
-                connector_y - 0.006,
-                gap,
-                0.012,
-                fill=RGBColor.from_string("B0B7C3"),
+                connector_y - 0.004,
+                bar_left - previous_right,
+                0.008,
+                fill=RGBColor.from_string("A6A6A6"),
             )
 
         if show_value_labels:
             label_text = _format_waterfall_value(row["value"], row["is_total"])
-            label_y = top_y - 0.28 if (row["is_total"] or row["value"] >= 0) else bottom_y + 0.04
+            # 正值/合计标签在柱顶上方，负值标签在柱底下方；文本框取整个槽宽防截断
+            if row["is_total"] or row["value"] >= 0:
+                label_y = top_y - 0.24
+            else:
+                label_y = bottom_y + 0.05
+                # 柱底贴近绘图区下缘时下方没有空间（会撞上分类轴文字）→ 改放柱顶上方
+                if label_y + 0.20 > plot_top + plot_height - 0.02:
+                    label_y = top_y - 0.24
             _add_textbox(
                 slide,
                 label_text,
-                x,
+                slot_left,
                 label_y,
-                bar_width,
-                0.22,
+                slot,
+                0.20,
                 font_name=label_font_name,
-                font_size=11,
+                font_size=10,
                 color=color,
                 bold=True,
             )
 
         previous_end_value = end_value
-        previous_right = x + bar_width
+        previous_right = bar_left + bar_width
 
 
 def _format_waterfall_value(value: float, is_total: bool) -> str:
+    """大数走千分位整数（93,801），小数两位封顶并去尾零（8.50→8.5）。"""
+    if abs(value) >= 1000:
+        text = f"{value:,.0f}"
+    else:
+        text = f"{value:.2f}".rstrip("0").rstrip(".")
     if value > 0 and not is_total:
-        return f"+{value:.2f}"
-    return f"{value:.2f}"
+        return f"+{text}"
+    return text
 
 
 def _emu_to_inches(value) -> float:

@@ -30,7 +30,23 @@ from .layout import (
     LegendConfig,
     ValueAxisConfig,
 )
+from .annotations import (
+    add_value_labels,
+    apply_annotations,
+    apply_forecast_pattern,
+    highlight_category,
+)
+from .examples import SCENARIO_EXAMPLES, chart_spec_examples
 from .parser import ChartParser, parse_all_charts_from_pptx, parse_chart_from_pptx
+from .range_chart import create_range_chart
+from .spec import (
+    NormalizedSpec,
+    SpecError,
+    chart_spec_reference,
+    normalize_spec,
+    render_chart,
+    validate_spec,
+)
 from .presets import (
     CHART_PRESET_FUNCTIONS,
     FINANCE_PRESET_FUNCTIONS,
@@ -100,15 +116,28 @@ __all__ = [
     "LIGHT_RED",
     "LegendConfig",
     "MONTHLY_TICKS",
+    "NormalizedSpec",
     "QUARTERLY_TICKS",
+    "SpecError",
     "StyleConfig",
+    "chart_spec_examples",
+    "chart_spec_reference",
+    "SCENARIO_EXAMPLES",
+    "normalize_spec",
+    "render_chart",
+    "validate_spec",
     "ValueAxisConfig",
     "WEEKLY_TICKS",
     "YEARLY_TICKS",
+    "add_value_labels",
+    "apply_annotations",
+    "apply_forecast_pattern",
     "clean_chart",
     "create_bubble_chart",
     "create_combo_chart",
+    "create_range_chart",
     "create_scatter_chart",
+    "highlight_category",
     "get_chart1_config",
     "get_chart2_config",
     "get_chart3_config",

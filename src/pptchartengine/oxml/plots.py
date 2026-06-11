@@ -20,6 +20,7 @@ def create_plot_element(
     val_ax_id: int,
     order_index: int = 0,
     grouping: ChartGrouping | None = None,
+    bar_dir: str = 'col',
 ):
     """
     创建图表绘图区元素
@@ -45,7 +46,7 @@ def create_plot_element(
     chart_type = chart_type.lower()
     
     if chart_type in ('bar', 'column'):
-        return _create_bar_plot(plotArea, cat_ax_id, val_ax_id, order_index, grouping or 'clustered')
+        return _create_bar_plot(plotArea, cat_ax_id, val_ax_id, order_index, grouping or 'clustered', bar_dir)
     elif chart_type == 'line':
         return _create_line_plot(plotArea, cat_ax_id, val_ax_id, order_index, grouping or 'standard')
     elif chart_type == 'area':
@@ -77,13 +78,13 @@ def _normalize_grouping(chart_type: str, grouping: str) -> str:
     return normalized
 
 
-def _create_bar_plot(plotArea, cat_ax_id: int, val_ax_id: int, order_index: int, grouping_value: str):
+def _create_bar_plot(plotArea, cat_ax_id: int, val_ax_id: int, order_index: int, grouping_value: str, bar_dir: str = 'col'):
     """创建柱状图元素"""
     barChart = etree.SubElement(plotArea, f"{{{NAMESPACES['c']}}}barChart")
-    
+
     # barDir: 柱状图方向 ('col' = 垂直柱状, 'bar' = 水平条形)
     barDir = etree.SubElement(barChart, f"{{{NAMESPACES['c']}}}barDir")
-    barDir.set('val', 'col')
+    barDir.set('val', bar_dir if bar_dir in ('col', 'bar') else 'col')
     
     # grouping: 分组方式 ('clustered' = 簇状, 'stacked' = 堆叠)
     grouping = etree.SubElement(barChart, f"{{{NAMESPACES['c']}}}grouping")

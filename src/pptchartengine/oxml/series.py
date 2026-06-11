@@ -44,6 +44,7 @@ def add_series_to_plot(
     df: pd.DataFrame,
     categories_col: str,
     style_config=None,
+    date_format: str = None,
 ):
     """
     向绘图元素添加一个系列
@@ -68,11 +69,11 @@ def add_series_to_plot(
     chart_type = chart_type.lower()
     
     if chart_type in ('bar', 'column'):
-        return _add_bar_series(plot_element, series_cfg, series_idx, df, categories_col, style_config)
+        return _add_bar_series(plot_element, series_cfg, series_idx, df, categories_col, style_config, date_format=date_format)
     elif chart_type == 'line':
-        return _add_line_series(plot_element, series_cfg, series_idx, df, categories_col, style_config)
+        return _add_line_series(plot_element, series_cfg, series_idx, df, categories_col, style_config, date_format=date_format)
     elif chart_type == 'area':
-        return _add_area_series(plot_element, series_cfg, series_idx, df, categories_col, style_config)
+        return _add_area_series(plot_element, series_cfg, series_idx, df, categories_col, style_config, date_format=date_format)
     elif chart_type == 'scatter':
         return _add_scatter_series(plot_element, series_cfg, series_idx, df, categories_col, style_config)
     elif chart_type == 'bubble':
@@ -81,7 +82,7 @@ def add_series_to_plot(
         raise ValueError(f"不支持的图表类型: {chart_type}")
 
 
-def _add_bar_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.DataFrame, categories_col: str, style_config=None):
+def _add_bar_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.DataFrame, categories_col: str, style_config=None, date_format: str = None):
     """添加柱状图系列"""
     values = df[series_cfg["key"]].tolist()
     categories = df[categories_col].tolist()
@@ -101,7 +102,7 @@ def _add_bar_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.Data
         style_config.apply_to_series(ser, series_idx)
     
     # ⭐ cat (分类数据) - 每个系列都必须有！
-    _add_series_categories(ser, categories, series_idx)
+    _add_series_categories(ser, categories, series_idx, date_format=date_format)
     
     # val (数值)
     _add_series_values(ser, values, series_idx)
@@ -111,7 +112,7 @@ def _add_bar_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.Data
     return ser
 
 
-def _add_line_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.DataFrame, categories_col: str, style_config=None):
+def _add_line_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.DataFrame, categories_col: str, style_config=None, date_format: str = None):
     """添加折线图系列"""
     values = df[series_cfg["key"]].tolist()
     categories = df[categories_col].tolist()
@@ -136,7 +137,7 @@ def _add_line_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.Dat
         symbol.set('val', 'circle')
     
     # ⭐ cat (分类数据) - 每个系列都必须有！
-    _add_series_categories(ser, categories, series_idx)
+    _add_series_categories(ser, categories, series_idx, date_format=date_format)
     
     # val (数值)
     _add_series_values(ser, values, series_idx)
@@ -180,7 +181,7 @@ def _add_bubble_series(
     return ser
 
 
-def _add_area_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.DataFrame, categories_col: str, style_config=None):
+def _add_area_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.DataFrame, categories_col: str, style_config=None, date_format: str = None):
     """添加面积图系列"""
     values = df[series_cfg["key"]].tolist()
     categories = df[categories_col].tolist()
@@ -200,7 +201,7 @@ def _add_area_series(plot_element, series_cfg: Dict, series_idx: int, df: pd.Dat
         style_config.apply_to_series(ser, series_idx)
     
     # ⭐ cat (分类数据) - 每个系列都必须有！
-    _add_series_categories(ser, categories, series_idx)
+    _add_series_categories(ser, categories, series_idx, date_format=date_format)
     
     # val (数值)
     _add_series_values(ser, values, series_idx)
@@ -370,7 +371,8 @@ def _add_series_index(ser, series_idx: int):
     order.set('val', str(series_idx))
 
 
-def _add_series_categories(ser, categories: list, series_idx: int):
+def _add_series_categories(ser, categories: list, series_idx: int, date_format: str = None):
+    date_format = date_format or '%Y/%m'
     """
     为系列添加分类数据 (cat)
     
@@ -406,13 +408,13 @@ def _add_series_categories(ser, categories: list, series_idx: int):
             
             if isinstance(cat_value, datetime):
                 # 格式化为 "yyyy/mm"（年份/月份）
-                v.text = cat_value.strftime('%Y/%m')
+                v.text = cat_value.strftime(date_format)
             elif isinstance(cat_value, float):
                 # Excel 日期序列号，转换为日期字符串
                 base_date = datetime(1899, 12, 30)
                 from datetime import timedelta
                 actual_date = base_date + timedelta(days=cat_value)
-                v.text = actual_date.strftime('%Y/%m')
+                v.text = actual_date.strftime(date_format)
             else:
                 v.text = str(cat_value)
     else:
