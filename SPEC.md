@@ -167,6 +167,13 @@ Chart spec 校验失败 (2 处):
 注释通过 manualLayout 钉定绘图区实现精确对位；数值标签/高亮/斜纹是原生
 XML（dLbls/dPt），在 PowerPoint 里依旧可编辑。
 
+## 结构化输出（schema 约束解码）
+
+`chart_spec_schema()` 返回 spec 的 JSON Schema（draft-07，~6KB），可直接作为
+Claude tool use 的 `input_schema` 或 `response_format: json_schema` —— 图表类型、
+轴、图例、grouping 等枚举在解码层锁死，语法/字段层错误归零；列名等语义部分
+配合 `validate_spec()` 闭环。
+
 ## 降低模型门槛的机制
 
 - **few-shot 示例库**：`chart_spec_examples("估值")` 按场景返回最小可用 spec（12 个场景），

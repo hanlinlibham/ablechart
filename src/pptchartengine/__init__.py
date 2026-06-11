@@ -39,6 +39,7 @@ from .annotations import (
 from .examples import SCENARIO_EXAMPLES, chart_spec_examples
 from .parser import ChartParser, parse_all_charts_from_pptx, parse_chart_from_pptx
 from .range_chart import create_range_chart
+from .schema import chart_spec_schema
 from .spec import (
     NormalizedSpec,
     SpecError,
@@ -121,6 +122,7 @@ __all__ = [
     "SpecError",
     "StyleConfig",
     "chart_spec_examples",
+    "chart_spec_schema",
     "chart_spec_reference",
     "SCENARIO_EXAMPLES",
     "normalize_spec",

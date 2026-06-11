@@ -8,6 +8,11 @@
 
 ## Done
 
+- `PCE-009` Structured-output alignment: `chart_spec_schema()` JSON Schema
+  (draft-07) for constrained decoding; enums lock chart/axis/legend/grouping
+  at the decoding layer while additionalProperties stays open for the
+  tolerant alias layer. Pairs with validate_spec() for semantics.
+
 - `PCE-008` Professional polish round vs JPM GTM benchmark.
   Result: title+subtitle system (bold near-black title + gray unit line, all chart
   kinds, left-aligned paragraphs); range chart refined (40%-slot bars, average dash
