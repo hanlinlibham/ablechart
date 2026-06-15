@@ -26,18 +26,14 @@ from .oxml_ns import NAMESPACES
 C = NAMESPACES["c"]
 A = NAMESPACES["a"]
 
-# 设计常量
+# 设计常量（颜色已迁移到 tokens.CHART_TOKENS，按调用时读取以支持运行时覆盖）
+from .tokens import get_chart_token  # noqa: E402
+
 TITLE_FONT = "微软雅黑"
 TITLE_SIZE_PT = 13
-TITLE_COLOR = "262626"          # GTM 面板标题近黑
 SUBTITLE_SIZE_PT = 9.5
-SUBTITLE_COLOR = "595959"       # 单位行灰色（GTM 每个面板标题下的 "Year-over-year" 等）
-ZERO_AXIS_COLOR = "404040"      # 数据跨零时的深色零轴线
 AXIS_FONT = "微软雅黑"
 AXIS_SIZE_PT = 9
-AXIS_TEXT_COLOR = "595959"
-AXIS_LINE_COLOR = "BFBFBF"
-GRIDLINE_COLOR = "E8E8E8"
 GAP_WIDTH_CLUSTERED = 80
 GAP_WIDTH_STACKED = 50
 DEFAULT_TICK_COUNT = 5
@@ -206,8 +202,9 @@ def set_axis_scale(ax, vmin: float, vmax: float, unit: Optional[float] = None) -
         major.set("val", repr(float(unit)))
 
 
-def set_axis_text(ax, font: str = AXIS_FONT, size_pt: float = AXIS_SIZE_PT, color: str = AXIS_TEXT_COLOR) -> None:
+def set_axis_text(ax, font: str = AXIS_FONT, size_pt: float = AXIS_SIZE_PT, color: str = None) -> None:
     """轴刻度标签字体/字号/颜色（覆盖已有设置以保证一致性）。"""
+    color = color or get_chart_token("axis_text")
     old = ax.find(f"{{{C}}}txPr")
     if old is not None:
         ax.remove(old)
@@ -242,7 +239,8 @@ def style_axis_line(ax, color: Optional[str]) -> None:
         etree.SubElement(fill, f"{{{A}}}srgbClr").set("val", color)
 
 
-def style_gridlines(ax, *, on: bool, color: str = GRIDLINE_COLOR) -> None:
+def style_gridlines(ax, *, on: bool, color: str = None) -> None:
+    color = color or get_chart_token("gridline")
     old = ax.find(f"{{{C}}}majorGridlines")
     if old is not None:
         ax.remove(old)
@@ -301,7 +299,7 @@ def style_chart_title(
     font: str = TITLE_FONT,
     size_pt: float = TITLE_SIZE_PT,
     bold: bool = True,
-    color: str = TITLE_COLOR,
+    color: str = None,
     align_left: bool = True,
 ) -> None:
     """标题字体 + 左上对齐（manualLayout）。
@@ -311,6 +309,7 @@ def style_chart_title(
     """
     if not chart.has_title:
         return
+    color = color or get_chart_token("title")
     from pptx.util import Pt
     from pptx.dml.color import RGBColor
 
@@ -324,7 +323,7 @@ def style_chart_title(
             run.font.name = font
             run.font.size = Pt(size_pt if is_title else SUBTITLE_SIZE_PT)
             run.font.bold = bold if is_title else False
-            run.font.color.rgb = RGBColor.from_string(color if is_title else SUBTITLE_COLOR)
+            run.font.color.rgb = RGBColor.from_string(color if is_title else get_chart_token("subtitle"))
 
     if align_left:
         title_el = chart._chartSpace.find(f".//{{{C}}}title")
@@ -441,7 +440,8 @@ def polish_combo_chart(
             if float(vmin_el.get("val")) < 0 < float(vmax_el.get("val")):
                 crosses_zero = True
 
-    cat_line_color = ZERO_AXIS_COLOR if crosses_zero else AXIS_LINE_COLOR
+    axis_line_color = get_chart_token("axis_line")
+    cat_line_color = get_chart_token("zero_axis") if crosses_zero else axis_line_color
     cat_font, cat_size = cat_text or (AXIS_FONT, AXIS_SIZE_PT)
     for ax in axes["cat"]:
         set_axis_text(ax, font=cat_font, size_pt=cat_size)
@@ -450,7 +450,7 @@ def polish_combo_chart(
         font, size = (sec_text if pos == "r" else val_text) or (AXIS_FONT, AXIS_SIZE_PT)
         set_axis_text(ax, font=font, size_pt=size)
         # 横向条形图的值轴在底部，保留轴线作为基准；纵向值轴不画线
-        style_axis_line(ax, AXIS_LINE_COLOR if horizontal else None)
+        style_axis_line(ax, axis_line_color if horizontal else None)
 
 
 def _ensure_format_resolution(ax, unit: float) -> None:
@@ -551,7 +551,7 @@ def polish_xy_chart(chart, x_values, y_values, *, ticks: int = DEFAULT_TICK_COUN
     for ax, pos in axes["val"]:
         set_axis_text(ax)
         if pos == "b":
-            style_axis_line(ax, AXIS_LINE_COLOR)
+            style_axis_line(ax, get_chart_token("axis_line"))
             style_gridlines(ax, on=False)
             # 轴穿过 0 时刻度文字会贴在零轴上被数据点遮挡 → 固定到底部
             tick_pos = _axis_insert(ax, "tickLblPos")

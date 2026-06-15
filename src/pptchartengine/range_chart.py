@@ -24,9 +24,8 @@ from .oxml_ns import NAMESPACES
 RANGE_BASE_KEY = "_range_base"
 RANGE_SPAN_KEY = "_range_span"
 
-DEFAULT_RANGE_COLOR = "595959"
-DEFAULT_AVERAGE_COLOR = "6BA43A"
-DEFAULT_CURRENT_COLOR = "29ABE2"
+# 区间/均值/当前默认色现集中在 tokens.CHART_TOKENS（range_band/range_avg/range_current）
+from .tokens import get_chart_token  # 颜色真源
 
 
 def create_range_chart(
@@ -45,9 +44,9 @@ def create_range_chart(
     layout_config=None,
     number_format: Optional[str] = None,
     sort: Optional[str] = None,
-    range_color: str = DEFAULT_RANGE_COLOR,
-    average_color: str = DEFAULT_AVERAGE_COLOR,
-    current_color: str = DEFAULT_CURRENT_COLOR,
+    range_color: str = None,
+    average_color: str = None,
+    current_color: str = None,
     range_name: str = "历史区间",
     average_name: str = "历史均值",
     current_name: str = "当前",
@@ -57,6 +56,9 @@ def create_range_chart(
     sort: 'asc'/'desc' 按 current（无 current 按 high）排序类目。
     number_format: 值轴格式，如 '0"x"'（PE 倍数）。
     """
+    range_color = range_color or get_chart_token("range_band")
+    average_color = average_color or get_chart_token("range_avg")
+    current_color = current_color or get_chart_token("range_current")
     for col in [low_col, high_col, current_col, average_col]:
         if col and col not in df.columns:
             raise ValueError(f"range chart 缺少列: {col}")

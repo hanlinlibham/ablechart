@@ -32,8 +32,7 @@ from .polish import AXIS_FONT, pin_plot_area
 C = NAMESPACES["c"]
 A = NAMESPACES["a"]
 
-ANNOT_LINE_COLOR = "29ABE2"   # GTM 参考线默认青色
-BAND_COLOR = "BFBFBF"
+from .tokens import get_chart_token  # 颜色真源
 FORECAST_PATTERN = "ltUpDiag"
 
 
@@ -169,7 +168,7 @@ def _draw_hline(slide, geo: PlotGeometry, ann: Dict) -> None:
     value = float(ann["value"])
     if not geo.in_range(value, axis):
         return  # 越界参考线直接跳过，避免画在图外
-    color = ann.get("color") or ANNOT_LINE_COLOR
+    color = ann.get("color") or get_chart_token("annotation_line")
     dashed = str(ann.get("style", "dashed")).lower() != "solid"
     y = geo.y(value, axis)
 
@@ -193,7 +192,7 @@ def _draw_band(slide, geo: PlotGeometry, ann: Dict) -> None:
     hi = float(ann.get("to", ann.get("high")))
     if not (geo.in_range(lo, axis) or geo.in_range(hi, axis)):
         return  # 整个区间都在轴范围外 → 跳过（y() 同时兜底裁剪部分越界）
-    color = ann.get("color") or BAND_COLOR
+    color = ann.get("color") or get_chart_token("band")
     alpha = int(ann.get("alpha", 30))
     y_top = geo.y(max(lo, hi), axis)
     y_bot = geo.y(min(lo, hi), axis)
@@ -212,7 +211,7 @@ def _draw_band(slide, geo: PlotGeometry, ann: Dict) -> None:
     label = ann.get("label")
     if label:
         _add_label(slide, str(label), geo.plot_left + 0.06, y_top + 0.03, 1.6, 0.18,
-                   color="595959", bold=True, align=PP_ALIGN.LEFT)
+                   color=get_chart_token("subtitle"), bold=True, align=PP_ALIGN.LEFT)
 
 
 def _draw_vline(slide, geo: PlotGeometry, ann: Dict, df, categories_col) -> None:
@@ -223,7 +222,7 @@ def _draw_vline(slide, geo: PlotGeometry, ann: Dict, df, categories_col) -> None
     if index is None:
         return
     x = geo.x_slot_left(int(index))
-    color = ann.get("color") or "595959"
+    color = ann.get("color") or get_chart_token("subtitle")
     dashed = str(ann.get("style", "dashed")).lower() != "solid"
     _add_line(slide, x, geo.plot_top, x, geo.plot_top + geo.plot_height,
               color=color, width_pt=1.0, dashed=dashed)
@@ -253,7 +252,7 @@ def _draw_vband(slide, geo: PlotGeometry, ann: Dict, df, categories_col) -> None
 
     x_left = geo.x_slot_left(i_from)
     x_right = geo.x_slot_left(i_to) + geo.plot_width / geo.n
-    color = ann.get("color") or BAND_COLOR
+    color = ann.get("color") or get_chart_token("band")
     alpha = int(ann.get("alpha", 25))
 
     shape = slide.shapes.add_shape(
@@ -270,7 +269,7 @@ def _draw_vband(slide, geo: PlotGeometry, ann: Dict, df, categories_col) -> None
     label = ann.get("label")
     if label:
         _add_label(slide, str(label), x_left + 0.04, geo.plot_top + 0.02, 1.4, 0.18,
-                   color="595959", bold=True, align=PP_ALIGN.LEFT)
+                   color=get_chart_token("subtitle"), bold=True, align=PP_ALIGN.LEFT)
 
 
 def _draw_last_point(chart, slide, geo: PlotGeometry, ann: Dict, df, series_config, date_format) -> None:
@@ -285,7 +284,7 @@ def _draw_last_point(chart, slide, geo: PlotGeometry, ann: Dict, df, series_conf
     axis = "right" if cfg.get("axis") == "secondary" else "left"
 
     ser = find_series_element(chart, cfg["name"])
-    color = ann.get("color") or (_series_color(ser) if ser is not None else None) or ANNOT_LINE_COLOR
+    color = ann.get("color") or (_series_color(ser) if ser is not None else None) or get_chart_token("annotation_line")
     if ser is not None and cfg.get("type", "bar") == "line":
         _add_last_point_marker(ser, idx, color)
 
@@ -383,7 +382,7 @@ def add_value_labels(
     if parent_tag == "lineChart" and dlbl_pos in ("outEnd", "inEnd"):
         dlbl_pos = "t"
 
-    label_color = _norm_hex(color) if color else (_series_color(ser) or "404040")
+    label_color = _norm_hex(color) if color else (_series_color(ser) or get_chart_token("zero_axis"))
 
     dLbls = etree.Element(f"{{{C}}}dLbls")
     if number_format:
@@ -451,7 +450,7 @@ def apply_forecast_pattern(chart, series_name: str, from_index: int, n_points: i
     ser = find_series_element(chart, series_name)
     if ser is None:
         return
-    base_color = _series_color(ser) or "595959"
+    base_color = _series_color(ser) or get_chart_token("subtitle")
     for i in range(from_index, n_points):
         dPt = etree.Element(f"{{{C}}}dPt")
         idx = etree.SubElement(dPt, f"{{{C}}}idx")

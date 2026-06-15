@@ -11,13 +11,13 @@
 from lxml import etree
 
 from .oxml_ns import NAMESPACES
+from .tokens import get_chart_token  # 颜色真源
 
 
 class ChartJunkCleaner:
     """清洗图表默认样式，向 JP 标准靠拢"""
 
-    # 极浅灰色（用于残留网格线）
-    GRID_COLOR = "E8E8E8"
+    # 网格线色取自 tokens.CHART_TOKENS["gridline"]（渲染时读取）
     GRID_WIDTH = 6350     # 0.5pt in EMUs
     LINE_WIDTH = 19050    # 1.5pt in EMUs
 
@@ -76,7 +76,7 @@ class ChartJunkCleaner:
         # 颜色
         solidFill = etree.SubElement(ln, f"{{{NAMESPACES['a']}}}solidFill")
         srgbClr = etree.SubElement(solidFill, f"{{{NAMESPACES['a']}}}srgbClr")
-        srgbClr.set('val', self.GRID_COLOR)
+        srgbClr.set('val', get_chart_token("gridline"))
 
         # 虚线样式
         prstDash = etree.SubElement(ln, f"{{{NAMESPACES['a']}}}prstDash")

@@ -67,10 +67,8 @@ _CHART_KIND_ALIASES = {
 }
 
 # contribution 别名：堆叠分项 + 合计线（GTM 宏观分解图标配）
+# 颜色取自 tokens（contribution_line / contribution_parts），集中管理。
 _CONTRIBUTION_ALIASES = {"contribution", "贡献", "贡献图", "贡献分解"}
-_CONTRIBUTION_LINE_COLOR = "F5821F"  # GTM 惯例：合计/净值线用橙色
-# 分项配色跳过橙色（橙色专属合计线）：灰/青/海军蓝/紫/橄榄绿/青绿
-_CONTRIBUTION_PART_COLORS = ["595959", "29ABE2", "1F3864", "7B5EA7", "6BA43A", "00838F", "8C8C8C", "A6A6A6"]
 
 _HORIZONTAL_ALIASES = {"horizontal", "h", "bar_h", "横向", "水平", "条形", "条形图"}
 
@@ -472,15 +470,17 @@ def _normalize_combo(spec, df, raw_kind, errors, warnings) -> NormalizedSpec:
                 c for c in df.columns
                 if c != cat_col and c != total_col and pd.api.types.is_numeric_dtype(df[c])
             ]
+            from .tokens import get_chart_palette, get_chart_token
+            part_colors = get_chart_palette("contribution_parts")
             raw_series = [
                 {"column": c, "type": "bar", "stacked": True,
-                 "color": _CONTRIBUTION_PART_COLORS[i % len(_CONTRIBUTION_PART_COLORS)]}
+                 "color": part_colors[i % len(part_colors)]}
                 for i, c in enumerate(parts)
             ]
             if total_col:
                 raw_series.append({
                     "column": total_col, "type": "line",
-                    "color": _CONTRIBUTION_LINE_COLOR, "line_width": 2,
+                    "color": get_chart_token("contribution_line"), "line_width": 2,
                 })
             warnings.append(
                 f"contribution: 分项={', '.join(map(str, parts))}"
@@ -1335,7 +1335,7 @@ _SPEC_REFERENCE = """\
    "stacked": true, "color": "#C00000", "line_width": 2, "marker": "circle"}
 - stacked: true → 全部柱状系列堆叠; grouping: "percent" → 百分比堆叠
 - style: {"theme": "able_finance", "colors": ["#1B3D6E","#C9A84C"], "line_width": 1.5, "marker": "none"}
-  可用主题: advisory/gtm/midnight/charcoal/able_finance/pension_warm/tech_blue/state_red/esg_green/dark_pro/daybreak/macro_research
+  可用主题: advisory/gtm/midnight/charcoal/able_finance/able_warm/tech_blue/state_red/esg_green/dark_pro/daybreak/macro_research
 - layout:
   - legend: "bottom|top|left|right|corner|none" 或 {"position":..,"font_size":9}
   - y_axis / y2_axis: {"format": "percent|0.00|#,##0", "min":0, "max":1, "unit":0.2, "gridlines": false}

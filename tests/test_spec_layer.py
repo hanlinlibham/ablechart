@@ -164,8 +164,9 @@ class TestErrors:
         assert report["normalized"]["categories"] == "年份"
 
     def test_unknown_theme_falls_back_with_warning(self):
-        plan = normalize_spec({"data": COMBO_DATA, "style": {"theme": "able_fin"}})
-        assert any("able_finance" in w for w in plan.warnings)
+        # 品牌盘（able_finance 等）由上层注册；引擎独立时 did-you-mean 针对自带方案
+        plan = normalize_spec({"data": COMBO_DATA, "style": {"theme": "categorica"}})
+        assert any("categorical" in w for w in plan.warnings)
 
 
 # ============================================================================

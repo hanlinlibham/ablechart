@@ -18,10 +18,9 @@ from .api import create_combo_chart
 from .oxml_ns import NAMESPACES
 from .parser import ChartParser
 
-# 哑光金融配色：鼠尾草绿 / 砖红 / 海军蓝（与 advisory 主题同系）
-DEFAULT_POSITIVE = "588157"
-DEFAULT_NEGATIVE = "B0413E"
-DEFAULT_TOTAL = "1F3864"
+# 哑光金融配色（鼠尾草绿 / 砖红 / 海军蓝）默认值现集中在 tokens.CHART_TOKENS，
+# 函数默认参数留 None，渲染时按 get_chart_token 读取（支持运行时覆盖）。
+from .tokens import get_chart_token  # 颜色真源
 
 # 钉定 plot 区域的布局比例（manualLayout，图表区域的分数坐标）
 _PLOT_X = 0.02
@@ -136,12 +135,15 @@ def build_waterfall_spec(
     *,
     measure_col: str | None = None,
     total_categories: Sequence[str] | None = None,
-    positive_color: str = DEFAULT_POSITIVE,
-    negative_color: str = DEFAULT_NEGATIVE,
-    total_color: str = DEFAULT_TOTAL,
+    positive_color: str = None,
+    negative_color: str = None,
+    total_color: str = None,
     show_legend: bool = False,
 ) -> dict[str, Any]:
     """Build a semantic spec for round-tripping waterfall charts."""
+    positive_color = positive_color or get_chart_token("wf_positive")
+    negative_color = negative_color or get_chart_token("wf_negative")
+    total_color = total_color or get_chart_token("wf_total")
 
     rows = _collect_waterfall_rows(
         df,
@@ -188,9 +190,9 @@ def create_waterfall_chart(
     position: tuple = (Inches(1), Inches(2)),
     size: tuple = (Inches(8), Inches(4.5)),
     layout_config=None,
-    positive_color: str = DEFAULT_POSITIVE,
-    negative_color: str = DEFAULT_NEGATIVE,
-    total_color: str = DEFAULT_TOTAL,
+    positive_color: str = None,
+    negative_color: str = None,
+    total_color: str = None,
     show_legend: bool = False,
     show_connectors: bool = True,
     show_value_labels: bool = True,
@@ -204,6 +206,9 @@ def create_waterfall_chart(
     （数值标签 / 连接线）与柱体精确对位，``show_connectors`` 默认开启。
     专业市场报告惯例默认隐藏值轴（数值标签承载信息），``show_y_axis=True`` 可显示。
     """
+    positive_color = positive_color or get_chart_token("wf_positive")
+    negative_color = negative_color or get_chart_token("wf_negative")
+    total_color = total_color or get_chart_token("wf_total")
 
     waterfall_spec = build_waterfall_spec(
         df,
@@ -660,7 +665,7 @@ def _add_waterfall_overlays(
                 connector_y - 0.004,
                 bar_left - previous_right,
                 0.008,
-                fill=RGBColor.from_string("A6A6A6"),
+                fill=RGBColor.from_string(get_chart_token("wf_connector")),
             )
 
         if show_value_labels:

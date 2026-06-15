@@ -18,6 +18,7 @@ from pptx.util import Inches, Pt
 from .api import _normalize_position_tuple, _normalize_size_tuple, _write_embedded_metadata
 from .oxml_ns import NAMESPACES
 from .polish import polish_xy_chart
+from .tokens import get_chart_token  # 颜色真源
 
 SCATTER_CHART_FAMILY = "scatter"
 BUBBLE_CHART_FAMILY = "bubble"
@@ -44,7 +45,7 @@ def create_scatter_chart(
     series_name: str | None = None,
     position: tuple = (Inches(1), Inches(2)),
     size: tuple = (Inches(8), Inches(4.5)),
-    color: str = "1F3864",
+    color: str = None,
     marker_size: int = 9,
 ):
     _validate_xy_input(df, x_col, y_col)
@@ -97,7 +98,7 @@ def create_bubble_chart(
     series_name: str | None = None,
     position: tuple = (Inches(1), Inches(2)),
     size: tuple = (Inches(8), Inches(4.5)),
-    color: str = "1F3864",
+    color: str = None,
     marker_size: int = 9,
 ):
     _validate_xy_input(df, x_col, y_col, size_col)
@@ -261,6 +262,7 @@ def _read_xy_workbook_dataframe(workbook, metadata: dict[str, Any]) -> pd.DataFr
 
 
 def _style_xy_or_bubble_chart(chart, *, color: str, marker_size: int, is_bubble: bool = False) -> None:
+    color = color or get_chart_token("scatter_default")
     chart.has_legend = False
     series = chart.series[0]
     # OOXML schema: CT_BubbleSer does not allow <c:marker>; setting it makes

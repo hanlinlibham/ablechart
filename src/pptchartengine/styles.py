@@ -10,59 +10,15 @@ from lxml import etree
 from .oxml_ns import NAMESPACES
 
 # ============================================================================
-# 颜色方案定义（RGB 格式）
+# 颜色方案定义 —— 已迁移到 tokens.py（唯一真源），此处 re-export 保持向后兼容
 # ============================================================================
-
-# 深色系列（主色）
-DARK_RED = "C00000"      # 深红色
-DARK_GRAY = "595959"     # 深灰色
-DARK_BLUE = "0070C0"     # 深蓝色
-DARK_ORANGE = "ED7D31"   # 深橙色
-
-# 浅色系列（辅助色）
-LIGHT_RED = "FF9999"     # 浅红色
-LIGHT_GRAY = "BFBFBF"    # 浅灰色
-LIGHT_BLUE = "9DC3E6"    # 浅蓝色
-LIGHT_ORANGE = "F4B183"  # 浅橙色
-
-# ⭐ aim00 风格颜色（对比色方案：浅灰柱状图 + 深红折线）
-AIM00_LIGHT_GRAY = "C0C0C0"  # 浅灰色 - 用于柱状图/面积图（第一系列）
-AIM00_DARK_RED = "C00000"    # 深红色 - 用于折线图（第二系列）
-AIM00_DARK_BLUE = "305496"   # 深蓝色 - 备用
-AIM00_GRAY = "808080"        # 中灰色 - 备用
-
-# 默认颜色序列（深色 + 浅色交替）
-DEFAULT_COLOR_SEQUENCE = [
-    DARK_RED,
-    DARK_BLUE,
-    DARK_ORANGE,
-    DARK_GRAY,
-    LIGHT_RED,
-    LIGHT_BLUE,
-    LIGHT_ORANGE,
-    LIGHT_GRAY,
-]
-
-# ── 主题配套图表系列色（每个主题一套 8 色） ──
-COLOR_SCHEMES = {
-    # 咨询报告风格：深海军蓝主色 + 亮蓝/青绿辅助 + 灰阶，深色优先保证单系列可读
-    "advisory":      ["1F3864", "2E9BD6", "00A398", "8C8C8C", "9DC3E6", "C9A84C", "5C7A93", "404040"],
-    # 市场指南（GTM，General Theme for Markets）风格：灰+青为主对，橙色留给"合计/净值"线，
-    # 海军蓝/紫/橄榄绿做分项（市场指南类报告堆叠贡献图的惯用色序）
-    "gtm":           ["595959", "29ABE2", "F5821F", "1F3864", "7B5EA7", "6BA43A", "00838F", "A6A6A6"],
-    "midnight":      ["CADCFC", "1E2761", "E8B931", "4A6FA5", "9BB5D6", "B08C28", "8896AB", "484E5C"],
-    "charcoal":      ["A8B4BE", "36454F", "E8B931", "607D8B", "B0BEC5", "C4A035", "78909C", "4A565E"],
-    "able_finance":    ["A8D5DC", "1B3D6E", "C9A84C", "4A8FB8", "7FBFCF", "A07840", "8FA8C0", "505868"],
-    "pension_warm":  ["A8C4D4", "2E5FA3", "D4903F", "7BA7BC", "B0C9B0", "9C7B48", "8A9DB8", "606870"],
-    "tech_blue":     ["90CAF9", "1565C0", "00BFA5", "7E57C2", "29B6F6", "FF7043", "90A4AE", "546E7A"],
-    "state_red":     ["CDAC60", "8B0000", "B8860B", "4A6FA5", "C07840", "507050", "907878", "585048"],
-    "esg_green":     ["A5D6A7", "1A5C2A", "8BC34A", "00838F", "C8E6C9", "795548", "78909C", "607D8B"],
-    "dark_pro":      ["00BFFF", "FFD700", "00E676", "7B68EE", "FF6D00", "E040FB", "A0B0C0", "4A5868"],
-    "daybreak":      ["A4C2D8", "1D2B3A", "E67E22", "5A9BD5", "95C8D8", "B87333", "7B8794", "495057"],
-    "macro_research":["AED6F1", "2C3E50", "3498DB", "95A5A6", "85C1E9", "1ABC9C", "BDC3C7", "566573"],
-    # 兜底别名：深色优先（浅色开头会让单系列折线图几乎不可见）
-    "default":       ["1F3864", "2E9BD6", "00A398", "8C8C8C", "9DC3E6", "C9A84C", "5C7A93", "404040"],
-}
+# 改色请去 tokens.py（或用 register_scheme/set_chart_tokens API），不要在这里加。
+from .tokens import (  # noqa: E402,F401
+    DARK_RED, DARK_GRAY, DARK_BLUE, DARK_ORANGE,
+    LIGHT_RED, LIGHT_GRAY, LIGHT_BLUE, LIGHT_ORANGE,
+    AIM00_LIGHT_GRAY, AIM00_DARK_RED, AIM00_DARK_BLUE, AIM00_GRAY,
+    COLOR_SCHEMES, DEFAULT_COLOR_SEQUENCE, get_scheme,
+)
 
 # ============================================================================
 # 线型配置
@@ -275,7 +231,7 @@ def get_color_for_series(series_index: int, color_scheme: str = "default") -> st
     Returns:
         RGB 颜色字符串（6位十六进制）
     """
-    colors = COLOR_SCHEMES.get(color_scheme, DEFAULT_COLOR_SEQUENCE)
+    colors = get_scheme(color_scheme)
     return colors[series_index % len(colors)]
 
 
