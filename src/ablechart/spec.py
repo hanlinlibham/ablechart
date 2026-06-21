@@ -27,6 +27,8 @@ import contextlib
 import difflib
 import io
 import math
+import re
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -122,6 +124,7 @@ _NUMBER_FORMAT_ALIASES = {
     "decimal1": "0.0", "decimal2": "0.00", "两位小数": "0.00",
     "currency": "#,##0.00",
     "times": '0"x"', "倍": '0"x"', "x": '0"x"',  # PE/PB 倍数轴
+    "general": "General", "auto": "General",
 }
 
 _NAMED_COLORS = {
@@ -201,11 +204,56 @@ def normalize_color(value: Any, *, what: str = "color", errors: Optional[List[st
     return None
 
 
-def _normalize_number_format(value: Any) -> Optional[str]:
+# A string "looks like" an Excel formatCode if it carries a digit placeholder,
+# a percent/currency/text symbol, or a date/time pattern (repeated date letters,
+# or date letters on both sides of a separator). Bare words like "number" do
+# not — passing those straight through renders garbage on the axis.
+_FORMAT_CODE_RE = re.compile(
+    r'[0#?%$¥€£@]|[ymdhs]{2,}|[ymd]\s?[/\-.]\s?[ymd]', re.IGNORECASE
+)
+
+
+def supported_number_format_tokens() -> List[str]:
+    """Aliases accepted by ``format`` (besides raw Excel formatCodes)."""
+    return sorted(set(_NUMBER_FORMAT_ALIASES))
+
+
+def _looks_like_format_code(text: str) -> bool:
+    return bool(_FORMAT_CODE_RE.search(text))
+
+
+def _normalize_number_format(value: Any, *, errors: Optional[List[str]] = None) -> Optional[str]:
+    """Resolve a ``format`` value to an Excel formatCode.
+
+    Order: known alias (e.g. ``percent`` -> ``0%``, ``times`` -> ``0"x"``) →
+    raw formatCode passthrough (``0.0%``, ``#,##0``, ``yyyy-mm-dd``, ``"¥"0`` …).
+    An unrecognized token that is *not* a plausible formatCode (e.g. ``number``)
+    is **not** passed through — it would render as literal garbage — instead it
+    yields a did-you-mean error (when ``errors`` is provided) or a warning, and
+    falls back to no explicit number format.
+
+    Note on percentages: ``0%`` (and friends) multiply by 100, so pass a
+    fraction (``0.27`` -> ``27%``). A value already in percentage points
+    (``27``) needs a literal format like ``0"%"`` instead.
+    """
     if value is None:
         return None
     token = _norm_token(value)
-    return _NUMBER_FORMAT_ALIASES.get(token, str(value))
+    if token in _NUMBER_FORMAT_ALIASES:
+        return _NUMBER_FORMAT_ALIASES[token]
+    text = str(value)
+    if _looks_like_format_code(text):
+        return text  # advanced: caller passed a real Excel formatCode
+    allowed = ", ".join(supported_number_format_tokens())
+    suggestion = difflib.get_close_matches(token, list(_NUMBER_FORMAT_ALIASES), n=1)
+    hint = f"（是否想用 '{suggestion[0]}'？）" if suggestion else ""
+    msg = (f"format: 无法识别数字格式 '{value}'{hint} —— 既不是别名也不像 Excel 格式码，"
+           f"已忽略。可用别名: {allowed}；或直接传格式码如 '0'、'0.0%'、'#,##0'、'yyyy-mm-dd'")
+    if errors is not None:
+        errors.append(msg)
+    else:
+        warnings.warn(msg, stacklevel=2)
+    return None
 
 
 def _coerce_length(value: Any, *, what: str, errors: List[str]):
@@ -815,7 +863,7 @@ def _normalize_range(spec, df, errors, warnings) -> NormalizedSpec:
         size=size,
         title=str(spec["title"]) if spec.get("title") else None,
         subtitle=str(spec["subtitle"]) if spec.get("subtitle") else None,
-        number_format=_normalize_number_format(spec.get("format")),
+        number_format=_normalize_number_format(spec.get("format"), errors=errors),
         sort=spec.get("sort"),
     )
     for spec_key, kw in (("range_color", "range_color"), ("average_color", "average_color"),
@@ -969,7 +1017,7 @@ def _normalize_value_axis(raw, ValueAxisConfig, where, errors):
     if not isinstance(raw, dict):
         errors.append(f"{where}: 应为 dict 或数字格式字符串，收到 {type(raw).__name__}")
         return None
-    fmt = _normalize_number_format(_first(raw, ("format", "number_format")))
+    fmt = _normalize_number_format(_first(raw, ("format", "number_format")), errors=errors)
     return ValueAxisConfig(
         number_format=fmt,
         font_size_pt=float(raw.get("font_size", 9)),

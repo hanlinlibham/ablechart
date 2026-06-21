@@ -52,6 +52,7 @@ from .spec import (
     chart_spec_reference,
     normalize_spec,
     render_chart,
+    supported_number_format_tokens,
     validate_spec,
 )
 from .presets import (
@@ -240,6 +241,7 @@ __all__ = [
     "SCENARIO_EXAMPLES",
     "normalize_spec",
     "render_chart",
+    "supported_number_format_tokens",
     "validate_spec",
     "ValueAxisConfig",
     "WEEKLY_TICKS",
