@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ablechart"
-version = "0.1.0"
+version = "0.1.1"
 description = "Editable PowerPoint chart engine for dual-axis financial charts"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,10 +29,13 @@ dependencies = [
     # (categories_col read back as NaN). Treat this as a conservative published
     # baseline; when relaxing, re-run full `pytest tests/` and install-from-wheel
     # smoke tests under the target dependency set.
+    # lxml allows 6.x so installs can resolve to 6.1.0+ (PYSEC-2026-87 safe
+    # default); verified against lxml 6.1.0. We never call lxml parsers directly —
+    # XML reads go through python-pptx (resolve_entities=False, DOCTYPE rejected).
     "python-pptx>=1.0.2,<1.1",
     "pandas>=2.2,<3",
     "numpy>=1.26,<2",
-    "lxml>=5,<6",
+    "lxml>=5,<7",
     "openpyxl>=3.1,<4",
 ]
 

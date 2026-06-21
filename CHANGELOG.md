@@ -2,6 +2,18 @@
 
 All notable changes to `ablechart` will be documented in this file.
 
+## 0.1.1 - 2026-06-21
+
+Security hardening (no exploitable issue in 0.1.0; defense-in-depth):
+
+- Relax `lxml` pin to `>=5,<7` so installs can resolve to the patched 6.1.0+
+  (PYSEC-2026-87 ships a safe `resolve_entities` default). ablechart never calls
+  lxml parsers directly; XML reads go through python-pptx, which already rejects
+  DOCTYPE / external entities. Verified against lxml 6.1.0.
+- Pin all GitHub Actions to full commit SHAs (with version comments) in the CI
+  and publish workflows, removing mutable-tag supply-chain risk on the
+  OIDC-publishing pipeline.
+
 ## 0.1.0 - 2026-06-21
 
 Initial public package candidate.

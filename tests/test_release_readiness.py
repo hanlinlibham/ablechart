@@ -7,6 +7,8 @@ full wheel/sdist build checks still belong in release CI.
 
 from __future__ import annotations
 
+import re
+
 try:
     import tomllib  # Python 3.11+
 except ModuleNotFoundError:  # Python 3.10
@@ -46,7 +48,7 @@ def test_pyproject_metadata_is_ready_for_public_distribution():
         "python-pptx>=1.0.2,<1.1",
         "pandas>=2.2,<3",
         "numpy>=1.26,<2",
-        "lxml>=5,<6",
+        "lxml>=5,<7",
         "openpyxl>=3.1,<4",
     }.issubset(dependencies)
 
@@ -109,5 +111,13 @@ def test_github_workflows_cover_ci_and_trusted_publishing():
     assert "environment:" in publish
     assert "name: testpypi" in publish
     assert "name: pypi" in publish
-    assert "pypa/gh-action-pypi-publish@v1.14.0" in publish
+    assert "pypa/gh-action-pypi-publish@" in publish
     assert "repository-url: https://test.pypi.org/legacy/" in publish
+
+    # Supply-chain contract: every action in both workflows is pinned to a full
+    # 40-hex commit SHA, never a mutable tag.
+    for wf in (ci, publish):
+        refs = re.findall(r"uses:\s*\S+@(\S+)", wf)
+        assert refs, "expected pinned actions in workflow"
+        for ref in refs:
+            assert re.fullmatch(r"[0-9a-f]{40}", ref), f"action not SHA-pinned: {ref}"
