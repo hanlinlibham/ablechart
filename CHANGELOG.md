@@ -20,6 +20,16 @@ Added (issue #9, Gap A — report-grade "last mile", first slice):
 - Rename the debug env var to `ABLECHART_DEBUG_STDOUT` (old
   `PPTCHARTENGINE_DEBUG_STDOUT` kept as an alias).
 
+Fixed (issue #13 — number-format correctness):
+
+- `_normalize_number_format` no longer passes an unrecognized token straight
+  through as an Excel `formatCode`. A bare word like `"number"` used to land in
+  `numFmt` and render as garbage on the axis; it is now rejected with a
+  did-you-mean (via the spec error list, or a warning) and falls back to no
+  explicit format. Real formatCodes (`0.0%`, `#,##0`, `yyyy-mm-dd`, `"¥"0`) and
+  aliases still work; added `general`/`auto` aliases. New public
+  `supported_number_format_tokens()` lists the accepted aliases.
+
 Fixed (issue #9, Gap B — robustness):
 
 - **Value-axis resolution by `axId`** instead of `axPos`. `oxml.axes.resolve_value_axes`
