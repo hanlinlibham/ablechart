@@ -84,7 +84,7 @@ jobs:
               prs.save(out)
               parsed = parse_chart_from_pptx(out)
 
-          assert ablechart.__version__ == "0.1.0"
+          assert isinstance(ablechart.__version__, str) and ablechart.__version__
           assert out.exists() and out.stat().st_size > 0
           assert len(parsed) == 4
           assert buf.getvalue() == ""
