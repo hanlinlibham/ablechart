@@ -24,7 +24,13 @@
 set -euo pipefail
 
 DRY_RUN=0
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
+ASSUME_YES=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    --yes|-y) ASSUME_YES=1 ;;
+  esac
+done
 
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
@@ -91,9 +97,13 @@ if [[ "$DRY_RUN" == "1" ]]; then
 fi
 
 # --- 3. tag + GitHub Release (triggers publish.yml -> PyPI) ----------------
-printf '==> create tag %s, push, and publish GitHub Release? [y/N] ' "$TAG"
-read -r ans
-[[ "$ans" == "y" || "$ans" == "Y" ]] || { echo "aborted."; exit 1; }
+if [[ "$ASSUME_YES" != "1" ]]; then
+  printf '==> create tag %s, push, and publish GitHub Release? [y/N] ' "$TAG"
+  read -r ans
+  [[ "$ans" == "y" || "$ans" == "Y" ]] || { echo "aborted."; exit 1; }
+else
+  echo "==> --yes: creating tag $TAG and publishing GitHub Release."
+fi
 
 git tag -a "$TAG" -m "chartengine $VERSION"
 git push origin "$TAG"
