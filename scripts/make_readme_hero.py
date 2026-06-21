@@ -21,7 +21,7 @@ import pandas as pd
 from pptx import Presentation
 from pptx.util import Inches
 
-from pptchartengine import (
+from chartengine import (
     create_combo_chart,
     StyleConfig,
     ChartLayoutConfig,

@@ -10,7 +10,7 @@ import math
 import pandas as pd
 import pytest
 
-from pptchartengine import ChartParser
+from chartengine import ChartParser
 
 
 @pytest.mark.parametrize(

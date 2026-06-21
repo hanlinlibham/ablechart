@@ -14,13 +14,13 @@ import pandas as pd
 import pytest
 from pptx import Presentation
 
-from pptchartengine import (
+from chartengine import (
     create_bubble_chart,
     create_combo_chart,
     create_scatter_chart,
     inspect_pptx_charts,
 )
-from pptchartengine.replace import (
+from chartengine.replace import (
     ReplaceResult,
     SeriesData,
     replace_pptx_chart_data,

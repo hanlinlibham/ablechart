@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from pptchartengine import (
+from chartengine import (
     SeriesData,
     inspect_pptx_charts,
     replace_pptx_chart_data,

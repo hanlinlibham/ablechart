@@ -15,8 +15,8 @@ import pandas as pd
 import pytest
 from pptx import Presentation
 
-from pptchartengine import create_combo_chart
-from pptchartengine.inspect import (
+from chartengine import create_combo_chart
+from chartengine.inspect import (
     ChartInventoryItem,
     ChartSelector,
     inspect_pptx_charts,

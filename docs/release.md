@@ -4,7 +4,7 @@ This project publishes with GitHub Actions and PyPI Trusted Publishing.
 
 ## Current GitHub Setup
 
-- Repository: `hanlinlibham/pptchartengine`
+- Repository: `hanlinlibham/chartengine`
 - CI workflow: `.github/workflows/ci.yml`
 - Publish workflow: `.github/workflows/publish.yml`
 - GitHub environments:
@@ -18,9 +18,9 @@ token through GitHub Actions and uses `pypa/gh-action-pypi-publish`.
 
 Configure a pending publisher on TestPyPI with:
 
-- PyPI project name: `pptchartengine`
+- PyPI project name: `chartengine`
 - Owner: `hanlinlibham`
-- Repository name: `pptchartengine`
+- Repository name: `chartengine`
 - Workflow filename: `publish.yml`
 - Environment name: `testpypi`
 
@@ -31,9 +31,9 @@ Manual dispatch publishes only to TestPyPI.
 
 Configure a pending publisher on PyPI with:
 
-- PyPI project name: `pptchartengine`
+- PyPI project name: `chartengine`
 - Owner: `hanlinlibham`
-- Repository name: `pptchartengine`
+- Repository name: `chartengine`
 - Workflow filename: `publish.yml`
 - Environment name: `pypi`
 
@@ -56,7 +56,7 @@ Also verify:
 
 - `README.md` states the alpha support scope accurately.
 - `CHANGELOG.md` has an entry for the version being released.
-- `pyproject.toml` version matches `pptchartengine.__version__`.
+- `pyproject.toml` version matches `chartengine.__version__`.
 - The package name is still available on PyPI before first publish.
 
 ## References

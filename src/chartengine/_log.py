@@ -7,7 +7,7 @@ import logging
 import os
 
 
-_LOGGER = logging.getLogger("pptchartengine")
+_LOGGER = logging.getLogger("chartengine")
 
 
 def debug_print(*args, **kwargs) -> None:

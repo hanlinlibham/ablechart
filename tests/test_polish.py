@@ -2,7 +2,7 @@
 
 import pytest
 
-from pptchartengine.polish import (
+from chartengine.polish import (
     _choose_tick_count,
     nice_range,
     strftime_from_excel,

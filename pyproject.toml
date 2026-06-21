@@ -3,12 +3,12 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pptchartengine"
+name = "chartengine"
 version = "0.1.0"
 description = "Editable PowerPoint chart engine for dual-axis financial charts"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "pptchartengine contributors" }]
+authors = [{ name = "chartengine contributors" }]
 license = "MIT"
 license-files = ["LICENSE"]
 keywords = ["powerpoint", "pptx", "charts", "finance", "openxml"]
@@ -37,14 +37,14 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hanlinlibham/pptchartengine"
-Repository = "https://github.com/hanlinlibham/pptchartengine"
-Issues = "https://github.com/hanlinlibham/pptchartengine/issues"
-Changelog = "https://github.com/hanlinlibham/pptchartengine/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/hanlinlibham/chartengine"
+Repository = "https://github.com/hanlinlibham/chartengine"
+Issues = "https://github.com/hanlinlibham/chartengine/issues"
+Changelog = "https://github.com/hanlinlibham/chartengine/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["pptchartengine*"]
+include = ["chartengine*"]
 
 [tool.pytest.ini_options]
 addopts = ["-p", "no:asyncio"]

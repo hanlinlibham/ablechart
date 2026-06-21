@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from pptx import Presentation
 
-from pptchartengine import (
+from chartengine import (
     ATTRIBUTION_DECOMPOSITION_FAMILY,
     AWARD_TIMELINE_PANEL_FAMILY,
     BIWEEKLY_TICKS,
@@ -81,7 +81,7 @@ from pptchartengine import (
     restore_range_snapshot_dataframe,
     restore_waterfall_dataframe,
 )
-from pptchartengine.date_axis import format_category_label
+from chartengine.date_axis import format_category_label
 
 
 def _sample_finance_df() -> pd.DataFrame:

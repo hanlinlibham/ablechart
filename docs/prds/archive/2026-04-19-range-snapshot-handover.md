@@ -54,11 +54,11 @@
 
 ## 关键文件
 
-### `pptchartengine`
+### `chartengine`
 
-- [range_snapshot.py](../../../src/pptchartengine/range_snapshot.py)
-- [presets.py](../../../src/pptchartengine/presets.py)
-- [__init__.py](../../../src/pptchartengine/__init__.py)
+- [range_snapshot.py](../../../src/chartengine/range_snapshot.py)
+- [presets.py](../../../src/chartengine/presets.py)
+- [__init__.py](../../../src/chartengine/__init__.py)
 - [test_package_contract.py](../../../tests/test_package_contract.py)
 
 ### `pptfi`
@@ -126,7 +126,7 @@
 
 已通过：
 
-- `pptchartengine`: `24 passed`
+- `chartengine`: `24 passed`
 - `pptfi`: `26 passed`
 
 此外已做过 PowerPoint 实机导出验证，而不只是单测。
