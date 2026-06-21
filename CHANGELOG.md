@@ -2,7 +2,7 @@
 
 All notable changes to `pptchartengine` will be documented in this file.
 
-## 0.1.0 - Unreleased
+## 0.1.0 - 2026-06-21
 
 Initial public package candidate.
 
