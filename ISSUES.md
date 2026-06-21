@@ -58,6 +58,15 @@ to Done; when a workaround becomes permanent, promote it to Known limits.
 
 ## Done
 
+- `PCE-010` **Release-readiness contract tests and public README positioning.** (2026-06-01)
+  Added `tests/test_release_readiness.py` to pin MIT license text, PyPI
+  metadata, README install/positioning/comparison claims, and `MANIFEST.in`
+  coverage for docs plus `.pptx` fixtures. README now positions the package
+  as a focused chart asset kernel and explicitly compares it with
+  `python-pptx`, `PptxGenJS`, `mschart`, Aspose, and Spire. ROADMAP split
+  PyPI package release gates from later report-level golden / skill quality
+  gates so v0.1.0 can ship as an honest alpha kernel package.
+
 - `PCE-009` **Metadata consolidation: layer 1 single-source-of-truth.** (2026-05-24)
   Created `src/pptchartengine/metadata.py` with authoritative
   `METADATA_SHEET_NAME` + `METADATA_SCHEMA_VERSION` constants (previously

@@ -21,6 +21,7 @@ import pandas as pd
 import io
 from openpyxl import load_workbook
 
+from ._log import debug_print as print
 from .oxml_ns import NAMESPACES
 from .metadata import METADATA_SHEET_NAME
 from .semantic_anchor import iter_semantic_anchors

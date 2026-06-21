@@ -13,6 +13,7 @@ from pptx.chart.data import BubbleChartData, CategoryChartData, XyChartData
 from pptx.util import Inches
 import pandas as pd
 
+from ._log import debug_print as print
 from .builder import ChartBuilder
 from .date_axis import format_category_label
 from .metadata import (

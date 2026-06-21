@@ -42,6 +42,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from ._log import debug_print as print
+
 
 # ---------------------------------------------------------------------------
 # Authoritative constants (DO NOT redefine in api.py / parser.py)

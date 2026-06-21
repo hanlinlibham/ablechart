@@ -16,6 +16,7 @@ tests will fail.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 from pptx import Presentation
@@ -150,11 +151,15 @@ def test_project_sample_template_has_zero_native_charts():
     - someone replaces the sample file with a different one
     - inspect_pptx_charts changes its definition of "what counts as a chart"
     """
-    sample = "/Users/jameslee/pension_plan/ppt-project/financial_charts_template_sample.pptx"
+    sample_env = os.environ.get("PPTCHARTENGINE_SAMPLE_TEMPLATE")
+    if not sample_env:
+        pytest.skip("set PPTCHARTENGINE_SAMPLE_TEMPLATE to validate an external sample template")
+
+    sample = Path(sample_env)
     if not os.path.exists(sample):
         pytest.skip(f"sample template not present: {sample}")
 
-    inv = inspect_pptx_charts(sample)
+    inv = inspect_pptx_charts(str(sample))
     assert inv == [], (
         f"Sample template now reports charts (was empty when contract was written): {inv}. "
         f"Either the file was edited or inspect's definition changed — investigate before updating."
