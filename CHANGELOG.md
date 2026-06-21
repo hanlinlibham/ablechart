@@ -2,7 +2,7 @@
 
 All notable changes to `ablechart` will be documented in this file.
 
-## 0.2.0 - Unreleased
+## 0.2.0 - 2026-06-21
 
 Added (issue #9, Gap A — report-grade "last mile", first slice):
 
