@@ -20,6 +20,15 @@ Added (issue #9, Gap A — report-grade "last mile", first slice):
 - Rename the debug env var to `ABLECHART_DEBUG_STDOUT` (old
   `PPTCHARTENGINE_DEBUG_STDOUT` kept as an alias).
 
+Fixed (issue #14 — range chart legend wired into spec):
+
+- The spec/`render_chart` range branch now passes `range_name` /
+  `average_name` / `current_name` and supports `legend: "none"` (also
+  off/hide/无) to hide the legend. Non-valuation range charts (allocation
+  bands, spread ranges) can rename or drop the legend from the job layer
+  instead of post-editing chart XML. `create_range_chart` gains a `show_legend`
+  flag; default legend name behavior unchanged.
+
 Fixed (issue #13 — number-format correctness):
 
 - `_normalize_number_format` no longer passes an unrecognized token straight
