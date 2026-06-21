@@ -866,6 +866,14 @@ def _normalize_range(spec, df, errors, warnings) -> NormalizedSpec:
         number_format=_normalize_number_format(spec.get("format"), errors=errors),
         sort=spec.get("sort"),
     )
+    # 图例名（非估值场景可改，如「配置区间」）；缺省走 create_range_chart 默认
+    for spec_key, kw in (("range_name", "range_name"), ("average_name", "average_name"),
+                         ("current_name", "current_name")):
+        if spec.get(spec_key) is not None:
+            kwargs[kw] = str(spec[spec_key])
+    # legend: "none"/"off"/"hide"/"无" 隐藏整个图例
+    if _norm_token(spec.get("legend", "")) in {"none", "off", "hide", "no", "false", "隐藏", "无"}:
+        kwargs["show_legend"] = False
     for spec_key, kw in (("range_color", "range_color"), ("average_color", "average_color"),
                          ("current_color", "current_color")):
         if spec.get(spec_key) is not None:

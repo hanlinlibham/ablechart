@@ -50,11 +50,14 @@ def create_range_chart(
     range_name: str = "历史区间",
     average_name: str = "历史均值",
     current_name: str = "当前",
+    show_legend: bool = True,
 ):
     """创建估值区间图。low/high 必填，current/average 可选。
 
     sort: 'asc'/'desc' 按 current（无 current 按 high）排序类目。
     number_format: 值轴格式，如 '0"x"'（PE 倍数）。
+    range_name / average_name / current_name: 图例名（非估值场景可改，如「配置区间」）。
+    show_legend: False 隐藏整个图例（非估值场景图例可能无意义）。
     """
     range_color = range_color or get_chart_token("range_band")
     average_color = average_color or get_chart_token("range_avg")
@@ -116,7 +119,10 @@ def create_range_chart(
     # 基底隐形 + 区间段灰色
     _hide_series(chart, RANGE_BASE_KEY)
     _fill_series(chart, range_name, range_color)
-    delete_legend_entry(chart, 0)
+    if show_legend:
+        delete_legend_entry(chart, 0)
+    else:
+        chart.has_legend = False
 
     # GTM 几何：柱宽 40% 槽宽（gapWidth=150）；均值杠按槽宽动态取尺寸，
     # 略宽于柱体、从两侧伸出（JPM 估值图的标志细节）
